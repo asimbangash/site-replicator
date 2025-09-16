@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Website Editor Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            color: #2d3748;
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 2rem;
+            height: calc(100vh - 80px);
+        }
+
+        .sidebar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 25px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-rows: auto 1fr;
+            gap: 1rem;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 25px rgba(0, 0, 0, 0.1);
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .editor-area {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            box-shadow: 0 4px 25px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 1fr 400px;
+        }
+
+        .preview-panel {
+            background: #f8f9fa;
+            border-right: 1px solid #e9ecef;
+            overflow: auto;
+        }
+
+        .preview-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+            transition: opacity 0.3s ease;
+        }
+
+        .preview-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #666;
+            z-index: 10;
+        }
+
+        .preview-panel {
+            position: relative;
+        }
+
+        .editing-panel {
+            padding: 1.5rem;
+            overflow-y: auto;
+            background: white;
+        }
+
+        .section {
+            margin-bottom: 2rem;
+        }
+
+        .section h3 {
+            color: #2d3748;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 0.5rem;
+        }
+
+        .site-list {
+            list-style: none;
+        }
+
+        .site-item {
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
+
+        .site-item:hover {
+            background: #e9ecef;
+            border-color: #667eea;
+        }
+
+        .site-item.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .site-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .site-url {
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a67d8;
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #38a169;
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+
+        .element-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .element-item {
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .element-tag {
+            font-size: 0.7rem;
+            background: #667eea;
+            color: white;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+            display: inline-block;
+        }
+
+        .element-text {
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            word-break: break-word;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .form-input {
+            flex: 1;
+            padding: 0.4rem 0.6rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .color-input {
+            width: 40px;
+            height: 30px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #48bb78;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.error {
+            background: #e53e3e;
+        }
+
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr;
+            }
+            
+            .editor-area {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎨 Website Editor Dashboard</h1>
+    </div>
+
+    <div class="container">
+        <div class="sidebar">
+            <div class="section">
+                <h3>📁 Cloned Sites</h3>
+                <ul class="site-list" id="siteList">
+                    <li class="loading">Loading sites...</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="controls">
+                <button class="btn btn-primary" id="saveAllBtn" disabled>
+                    💾 Save All Changes
+                </button>
+                <button class="btn btn-secondary" id="previewBtn" disabled>
+                    👁️ Open Preview
+                </button>
+                <span id="unsavedChanges" style="color: #e53e3e; font-weight: 500; display: none;">
+                    • Unsaved changes
+                </span>
+            </div>
+
+            <div class="editor-area">
+                <div class="preview-panel">
+                    <div id="previewLoading" class="preview-loading" style="display: none;">
+                        🔄 Loading preview...
+                    </div>
+                    <iframe id="previewFrame" class="preview-iframe" src="about:blank"></iframe>
+                </div>
+
+                <div class="editing-panel">
+                    <div id="noSiteSelected" class="loading">
+                        Select a site from the sidebar to start editing
+                    </div>
+
+                    <div id="editingContent" style="display: none;">
+                        <div class="section">
+                            <h3>✏️ Text Content</h3>
+                            <div class="element-list" id="textElements">
+                                <div class="loading">Loading text elements...</div>
+                            </div>
+                        </div>
+
+                        <div class="section">
+                            <h3>🎨 Colors</h3>
+                            <div class="element-list" id="colorElements">
+                                <div class="loading">Loading color elements...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        let currentSiteId = null;
+        let textChanges = {};
+        let colorChanges = {};
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadSites();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            document.getElementById('saveAllBtn').addEventListener('click', saveAllChanges);
+            document.getElementById('previewBtn').addEventListener('click', openPreview);
+        }
+
+        async function loadSites() {
+            try {
+                const response = await fetch('/api/sites');
+                const sites = await response.json();
+                
+                const siteList = document.getElementById('siteList');
+                
+                if (sites.length === 0) {
+                    siteList.innerHTML = '<li class="loading">No cloned sites found</li>';
+                    return;
+                }
+                
+                siteList.innerHTML = sites.map(site => `
+                    <li class="site-item" data-site-id="${site.siteId}">
+                        <div class="site-title">${new URL(site.originalUrl).hostname}</div>
+                        <div class="site-url">${site.originalUrl}</div>
+                        <div class="site-url">Cloned: ${new Date(site.clonedAt).toLocaleDateString()}</div>
+                        ${site.lastEdited ? `<div class="site-url">Edited: ${new Date(site.lastEdited).toLocaleDateString()}</div>` : ''}
+                    </li>
+                `).join('');
+                
+                // Add click listeners
+                siteList.querySelectorAll('.site-item').forEach(item => {
+                    item.addEventListener('click', () => selectSite(item.dataset.siteId));
+                });
+                
+            } catch (error) {
+                showToast('Failed to load sites', 'error');
+                console.error('Error loading sites:', error);
+            }
+        }
+
+        async function selectSite(siteId) {
+            if (currentSiteId === siteId) return;
+            
+            // Clear previous selection
+            document.querySelectorAll('.site-item').forEach(item => item.classList.remove('active'));
+            document.querySelector(`[data-site-id="${siteId}"]`).classList.add('active');
+            
+            currentSiteId = siteId;
+            textChanges = {};
+            colorChanges = {};
+            updateUnsavedIndicator();
+            
+            // Enable controls
+            document.getElementById('saveAllBtn').disabled = false;
+            document.getElementById('previewBtn').disabled = false;
+            
+            // Load site preview with loading indicator
+            const previewFrame = document.getElementById('previewFrame');
+            const previewLoading = document.getElementById('previewLoading');
+            
+            previewLoading.style.display = 'block';
+            previewFrame.style.opacity = '0.5';
+            
+            previewFrame.onload = () => {
+                previewLoading.style.display = 'none';
+                previewFrame.style.opacity = '1';
+            };
+            
+            previewFrame.src = `/preview/${siteId}`;
+            
+            // Show editing content
+            document.getElementById('noSiteSelected').style.display = 'none';
+            document.getElementById('editingContent').style.display = 'block';
+            
+            await loadSiteContent(siteId);
+        }
+
+        async function loadSiteContent(siteId) {
+            try {
+                const response = await fetch(`/api/sites/${siteId}/content`);
+                const content = await response.json();
+                
+                // Load text elements
+                const textContainer = document.getElementById('textElements');
+                textContainer.innerHTML = content.textElements.map(element => `
+                    <div class="element-item">
+                        <div class="element-tag">${element.tag}</div>
+                        <div class="element-text">${element.text}</div>
+                        <div class="input-group">
+                            <input type="text" class="form-input" value="${element.text}" 
+                                   data-element-id="${element.id}" data-type="text">
+                            <button class="btn btn-primary btn-sm" onclick="updateText('${element.id}', this)">Update</button>
+                        </div>
+                    </div>
+                `).join('');
+                
+                // Load color elements
+                const colorContainer = document.getElementById('colorElements');
+                colorContainer.innerHTML = content.colorElements.map(element => {
+                    const displayText = element.text || element.value;
+                    const typeLabel = element.type === 'text' ? '📝 Text Color' : 
+                                     element.type === 'background' ? '🎨 Background' : 
+                                     element.type === 'class' ? '🏷️ CSS Class' : 
+                                     '🎯 ' + element.property;
+                    
+                    return `
+                        <div class="element-item">
+                            <div class="element-tag">${element.tag} • ${typeLabel}</div>
+                            <div class="element-text">${displayText}</div>
+                            <div class="input-group">
+                                <input type="color" class="color-input" value="${normalizeColor(element.value)}" 
+                                       data-element-id="${element.id}" data-property="${element.property}" 
+                                       data-type="color" data-color-type="${element.type || 'inline'}">
+                                <input type="text" class="form-input" value="${element.value}" 
+                                       data-element-id="${element.id}" data-property="${element.property}" 
+                                       data-type="color-text" data-color-type="${element.type || 'inline'}">
+                                <button class="btn btn-primary btn-sm" onclick="updateColor('${element.id}', '${element.property}', '${element.type || 'inline'}', this)">Update</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Add change listeners
+                textContainer.querySelectorAll('input[data-type="text"]').forEach(input => {
+                    input.addEventListener('input', () => markAsChanged());
+                });
+                
+                colorContainer.querySelectorAll('input[data-type="color"], input[data-type="color-text"]').forEach(input => {
+                    input.addEventListener('input', () => {
+                        markAsChanged();
+                        if (input.type === 'color') {
+                            // Update the text input when color picker changes
+                            const textInput = input.parentElement.querySelector('input[data-type="color-text"]');
+                            textInput.value = input.value;
+                        }
+                    });
+                });
+                
+            } catch (error) {
+                showToast('Failed to load site content', 'error');
+                console.error('Error loading site content:', error);
+            }
+        }
+
+        function updateText(elementId, button) {
+            const input = button.parentElement.querySelector('input');
+            const newText = input.value.trim();
+            
+            if (!newText) return;
+            
+            textChanges[elementId] = { elementId, newText };
+            markAsChanged();
+            showToast('Text change queued for saving');
+        }
+
+        function updateColor(elementId, property, type, button) {
+            const colorInput = button.parentElement.querySelector('input[data-type="color"]');
+            const textInput = button.parentElement.querySelector('input[data-type="color-text"]');
+            const newColor = textInput.value.trim() || colorInput.value;
+            
+            if (!newColor) return;
+            
+            const changeKey = `${elementId}_${property}`;
+            colorChanges[changeKey] = { elementId, property, newColor, type };
+            markAsChanged();
+            showToast(`${type === 'text' ? 'Text' : type === 'background' ? 'Background' : 'Color'} change queued for saving`);
+        }
+
+        async function saveAllChanges() {
+            if (!currentSiteId) return;
+            
+            const textChangesArray = Object.values(textChanges);
+            const colorChangesArray = Object.values(colorChanges);
+            
+            if (textChangesArray.length === 0 && colorChangesArray.length === 0) {
+                showToast('No changes to save', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/sites/${currentSiteId}/save`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        textChanges: textChangesArray,
+                        colorChanges: colorChangesArray
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    textChanges = {};
+                    colorChanges = {};
+                    updateUnsavedIndicator();
+                    
+                    // Refresh preview with loading indicator
+                    const previewFrame = document.getElementById('previewFrame');
+                    const previewLoading = document.getElementById('previewLoading');
+                    
+                    previewLoading.style.display = 'block';
+                    previewFrame.style.opacity = '0.5';
+                    
+                    previewFrame.onload = () => {
+                        previewLoading.style.display = 'none';
+                        previewFrame.style.opacity = '1';
+                    };
+                    
+                    previewFrame.src = `/preview/${currentSiteId}?t=${Date.now()}`;
+                    
+                    showToast(`Saved ${result.changesApplied.textChanges + result.changesApplied.colorChanges} changes successfully`);
+                } else {
+                    throw new Error(result.error);
+                }
+                
+            } catch (error) {
+                showToast('Failed to save changes: ' + error.message, 'error');
+                console.error('Error saving changes:', error);
+            }
+        }
+
+        function openPreview() {
+            if (currentSiteId) {
+                window.open(`/preview/${currentSiteId}`, '_blank');
+            }
+        }
+
+        function markAsChanged() {
+            updateUnsavedIndicator();
+        }
+
+        function updateUnsavedIndicator() {
+            const hasChanges = Object.keys(textChanges).length > 0 || Object.keys(colorChanges).length > 0;
+            const indicator = document.getElementById('unsavedChanges');
+            indicator.style.display = hasChanges ? 'inline' : 'none';
+        }
+
+        function normalizeColor(color) {
+            // Convert color values to hex format for color input
+            if (color.startsWith('#')) return color;
+            if (color.startsWith('rgb')) {
+                const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+                if (match) {
+                    const r = parseInt(match[1]).toString(16).padStart(2, '0');
+                    const g = parseInt(match[2]).toString(16).padStart(2, '0');
+                    const b = parseInt(match[3]).toString(16).padStart(2, '0');
+                    return `#${r}${g}${b}`;
+                }
+            }
+            return '#000000'; // Default fallback
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type}`;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

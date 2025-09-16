@@ -423,15 +423,48 @@ app.get('/preview/:siteId', async (req, res) => {
     const htmlPath = path.join(cloner.outputDir, siteId, 'index.html');
     
     try {
-        const html = await fs.readFile(htmlPath, 'utf8');
+        let html = await fs.readFile(htmlPath, 'utf8');
+        
+        // Fix asset paths to work with our server setup
+        html = html.replace(/src="\.\/assets\//g, `src="/cloned-sites/${siteId}/assets/`);
+        html = html.replace(/href="\.\/assets\//g, `href="/cloned-sites/${siteId}/assets/`);
+        html = html.replace(/url\(\.\/assets\//g, `url(/cloned-sites/${siteId}/assets/`);
+        
+        // Fix custom CSS path
+        html = html.replace(/href="\.\/custom-colors\.css"/g, `href="/cloned-sites/${siteId}/custom-colors.css"`);
+        
+        // Add base tag to fix relative paths
+        html = html.replace('<head>', `<head><base href="/cloned-sites/${siteId}/">`);
+        
+        // Fix iframe embedding issues
+        html = html.replace('<head>', '<head><meta http-equiv="Content-Security-Policy" content="frame-ancestors \'self\';">');
+        
         res.send(html);
     } catch (error) {
         res.status(404).json({ error: 'Site not found' });
     }
 });
 
-// Serve static assets
-app.use('/assets/:siteId', express.static(path.join(__dirname, 'cloned_sites')));
+// Serve static files
+app.use('/public', express.static(path.join(__dirname, 'public')));
+
+// Serve assets for each cloned site
+app.use('/cloned-sites/:siteId/assets', (req, res, next) => {
+    const { siteId } = req.params;
+    const assetsPath = path.join(__dirname, 'cloned_sites', siteId, 'assets');
+    express.static(assetsPath)(req, res, next);
+});
+
+// Serve entire cloned site directories for any other files
+app.use('/cloned-sites/:siteId', (req, res, next) => {
+    const { siteId } = req.params;
+    const sitePath = path.join(__dirname, 'cloned_sites', siteId);
+    express.static(sitePath)(req, res, next);
+});
+
+// Use editor routes
+const editorRoutes = require('./routes/editor');
+app.use('/', editorRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
@@ -440,6 +473,8 @@ app.listen(PORT, () => {
     console.log(`POST /clone-website - Clone a website`);
     console.log(`GET /cloned-sites - List all cloned sites`);
     console.log(`GET /preview/:siteId - Preview a cloned site`);
+    console.log(`GET /editor - Open the Editor Dashboard`);
+    console.log(`API endpoints for editing available at /api/sites/*`);
 });
 
 module.exports = { WebsiteCloner, app };
