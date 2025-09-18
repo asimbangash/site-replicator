@@ -500,6 +500,29 @@ app.use("/cloned-sites/:siteId/assets", (req, res, next) => {
   express.static(assetsPath)(req, res, next);
 });
 
+// Simple dynamic routing: serve cloned sites directly by folder name (dynamic routes )
+app.use("/:siteName", async (req, res, next) => {
+  const { siteName } = req.params;
+
+  // Skip if this is a known route or file extension
+  if (siteName.includes('.') ||
+    ['editor', 'api', 'public', 'cloned-sites', 'clone-website', 'preview'].includes(siteName)) {
+    return next();
+  }
+
+  try {
+    // Check if site folder exists
+    const sitePath = path.join(__dirname, "cloned_sites", siteName);
+    await fs.access(sitePath);
+
+    // Serve the entire folder as static files
+    express.static(sitePath)(req, res, next);
+  } catch (error) {
+    // Site folder doesn't exist, continue to next middleware
+    next();
+  }
+});
+
 // Serve entire cloned site directories for any other files
 app.use("/cloned-sites/:siteId", (req, res, next) => {
   const { siteId } = req.params;
