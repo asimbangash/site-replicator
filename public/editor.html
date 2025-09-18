@@ -322,11 +322,11 @@
                 <button class="btn btn-primary" id="saveAllBtn" disabled>
                     💾 Save All Changes
                 </button>
-                <button class="btn btn-secondary" id="previewBtn" disabled>
+                <!-- <button class="btn btn-secondary" id="previewBtn" disabled>
                     👁️ Open Preview
-                </button>
-                <button class="btn btn-success" id="deployBtn" disabled>
-                    🚀 Deploy to Server
+                </button> -->
+                <button class="btn btn-secondary" id="deployBtn" disabled>
+                    👁️ Open Preview
                 </button>
                 <!-- <label class="auto-deploy-label">
                     <input type="checkbox" id="autoDeployCheckbox">
@@ -385,7 +385,14 @@
 
         function setupEventListeners() {
             document.getElementById('saveAllBtn').addEventListener('click', saveAllChanges);
-            document.getElementById('previewBtn').addEventListener('click', openPreview);
+            // Preview button has been commented out
+            // document.getElementById('previewBtn').addEventListener('click', openPreview);
+            document.getElementById('deployBtn').addEventListener('click', deploySite);
+        }
+        
+        function deploySite() {
+            if (!currentSiteId) return;
+            window.open(`/${currentSiteId}`, '_blank');
         }
 
         async function loadSites() {
@@ -402,7 +409,7 @@
                 
                 siteList.innerHTML = sites.map(site => `
                     <li class="site-item" data-site-id="${site.siteId}">
-                        <div class="site-title">${new URL(site.originalUrl).hostname}</div>
+                        <div class="site-title">${site.siteName || new URL(site.originalUrl).hostname}</div>
                         <div class="site-url">${site.originalUrl}</div>
                         <div class="site-url">Cloned: ${new Date(site.clonedAt).toLocaleDateString()}</div>
                         ${site.lastEdited ? `<div class="site-url">Edited: ${new Date(site.lastEdited).toLocaleDateString()}</div>` : ''}
@@ -434,7 +441,9 @@
             
             // Enable controls
             document.getElementById('saveAllBtn').disabled = false;
-            document.getElementById('previewBtn').disabled = false;
+            // Preview button has been commented out
+            // document.getElementById('previewBtn').disabled = false;
+            document.getElementById('deployBtn').disabled = false;
             
             // Load site preview with loading indicator
             const previewFrame = document.getElementById('previewFrame');

@@ -59,6 +59,7 @@ router.get("/api/sites", async (req, res) => {
         const metadata = JSON.parse(await fs.readFile(metadataPath, "utf8"));
         sitesList.push({
           siteId,
+          siteName: metadata.siteName || siteId,
           originalUrl: metadata.originalUrl,
           clonedAt: metadata.clonedAt,
           lastEdited: metadata.lastEdited || null,

@@ -225,6 +225,11 @@
                 <label for="websiteUrl">Website URL</label>
                 <input type="url" id="websiteUrl" class="url-input" placeholder="https://example.com" required>
             </div>
+            <div class="input-group">
+                <label for="websiteName">Website Name</label>
+                <input type="text" id="websiteName" class="url-input" placeholder="myawesomewebsite" required>
+                <small style="color: #666; margin-top: 4px; font-size: 0.85rem;">Use letters, numbers, and hyphens only. Cannot start with hyphen.</small>
+            </div>
             <button id="cloneButton" class="btn btn-primary">Clone Website</button>
         </div>
 
@@ -253,6 +258,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const cloneButton = document.getElementById('cloneButton');
             const urlInput = document.getElementById('websiteUrl');
+            const nameInput = document.getElementById('websiteName');
             const loadingOverlay = document.getElementById('loadingOverlay');
             const statusMessage = document.getElementById('statusMessage');
             const errorMessage = document.getElementById('errorMessage');
@@ -264,14 +270,39 @@
                     urlInput.value = item.dataset.url;
                 });
             });
+            
+            // Real-time website name validation
+            nameInput.addEventListener('input', () => {
+                const websiteName = nameInput.value.trim();
+                const websiteNameRegex = /^[a-zA-Z0-9][-a-zA-Z0-9]*$/;
+                
+                if (websiteName && !websiteNameRegex.test(websiteName)) {
+                    nameInput.style.borderColor = '#e53e3e';
+                } else {
+                    nameInput.style.borderColor = '';
+                }
+            });
 
             // Clone button click handler
             cloneButton.addEventListener('click', async () => {
                 const url = urlInput.value.trim();
+                const websiteName = nameInput.value.trim();
                 
                 // Basic validation
                 if (!url) {
                     showError('Please enter a valid URL');
+                    return;
+                }
+                
+                if (!websiteName) {
+                    showError('Please enter a website name');
+                    return;
+                }
+                
+                // Website name validation
+                const websiteNameRegex = /^[a-zA-Z0-9][-a-zA-Z0-9]*$/;
+                if (!websiteNameRegex.test(websiteName)) {
+                    showError('Invalid website name. Use only letters, numbers, and hyphens. Cannot start with hyphen.');
                     return;
                 }
 
@@ -283,16 +314,32 @@
                 }
 
                 // Show loading overlay
-                showLoading('Cloning website... This may take a minute.');
+                showLoading('Checking website name availability...');
                 
                 try {
+                    // First check if website name already exists
+                    const checkResponse = await fetch(`/check-website-name/${websiteName}`);
+                    const checkResult = await checkResponse.json();
+                    
+                    if (checkResult.exists) {
+                        hideLoading();
+                        showError(`A website with the name "${websiteName}" already exists. Please choose a different name.`);
+                        return;
+                    }
+                    
+                    // If name is available, proceed with cloning
+                    showLoading('Cloning website... This may take a minute.');
+                    
                     // Send clone request to server
                     const response = await fetch('/clone-website', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({ url: formattedUrl }),
+                        body: JSON.stringify({ 
+                            url: formattedUrl,
+                            name: websiteName
+                        }),
                     });
 
                     const result = await response.json();

@@ -70,8 +70,8 @@ class WebsiteCloner {
     }
   }
 
-  async cloneWebsite(targetUrl) {
-    console.log(`Starting to clone ${targetUrl}`);
+  async cloneWebsite(targetUrl, siteName = "") {
+    console.log(`Starting to clone ${targetUrl} with name ${siteName}`);
 
     // Add global timeout wrapper
     const timeoutPromise = new Promise((_, reject) => {
@@ -83,7 +83,7 @@ class WebsiteCloner {
 
     try {
       // First try with Playwright for full JS rendering
-      const playwrightPromise = this.cloneWithPlaywright(targetUrl);
+      const playwrightPromise = this.cloneWithPlaywright(targetUrl, siteName);
       return await Promise.race([playwrightPromise, timeoutPromise]);
     } catch (playwrightError) {
       console.log(
@@ -91,7 +91,7 @@ class WebsiteCloner {
         playwrightError.message
       );
       try {
-        const axiosPromise = this.cloneWithAxios(targetUrl);
+        const axiosPromise = this.cloneWithAxios(targetUrl, siteName);
         return await Promise.race([axiosPromise, timeoutPromise]);
       } catch (axiosError) {
         throw axiosError;
@@ -99,8 +99,8 @@ class WebsiteCloner {
     }
   }
 
-  async cloneWithPlaywright(targetUrl) {
-    console.log(`Launching browser for ${targetUrl}`);
+  async cloneWithPlaywright(targetUrl, siteName = "") {
+    console.log(`Launching browser for ${targetUrl} with name ${siteName}`);
     let browser;
 
     try {
@@ -167,8 +167,36 @@ class WebsiteCloner {
       // Parse with Cheerio for manipulation
       const $ = cheerio.load(html);
 
-      // Create output directory
-      const siteId = Date.now().toString();
+      // Create output directory with site name only
+      let siteId;
+      if (siteName) {
+        // Create a safe directory name from the site name
+        siteId = siteName
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, "_")
+          .replace(/_+/g, "_")
+          .substring(0, 30);
+
+        // Check if directory already exists, append number if needed
+        let counter = 1;
+        let tempSiteId = siteId;
+        while (true) {
+          try {
+            await fs.access(path.join(this.outputDir, tempSiteId));
+            // Directory exists, try with counter
+            tempSiteId = `${siteId}${counter}`;
+            counter++;
+          } catch (error) {
+            // Directory doesn't exist, we can use this name
+            siteId = tempSiteId;
+            break;
+          }
+        }
+      } else {
+        // Fallback to timestamp
+        siteId = Date.now().toString();
+      }
+
       const siteDir = path.join(this.outputDir, siteId);
       await this.ensureDirectoryExists(siteDir);
       await this.ensureDirectoryExists(path.join(siteDir, "assets"));
@@ -228,6 +256,7 @@ class WebsiteCloner {
       // Save metadata
       const metadata = {
         originalUrl: targetUrl,
+        siteName: siteName || "",
         clonedAt: new Date().toISOString(),
         siteId: siteId,
         method: "playwright",
@@ -266,8 +295,10 @@ class WebsiteCloner {
     }
   }
 
-  async cloneWithAxios(targetUrl) {
-    console.log(`Using axios fallback method for ${targetUrl}`);
+  async cloneWithAxios(targetUrl, siteName = "") {
+    console.log(
+      `Using axios fallback method for ${targetUrl} with name ${siteName}`
+    );
 
     try {
       // Fetch the HTML with axios
@@ -295,8 +326,36 @@ class WebsiteCloner {
       // Parse with Cheerio for manipulation
       const $ = cheerio.load(html);
 
-      // Create output directory
-      const siteId = Date.now().toString();
+      // Create output directory with site name only
+      let siteId;
+      if (siteName) {
+        // Create a safe directory name from the site name
+        siteId = siteName
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, "_")
+          .replace(/_+/g, "_")
+          .substring(0, 30);
+
+        // Check if directory already exists, append number if needed
+        let counter = 1;
+        let tempSiteId = siteId;
+        while (true) {
+          try {
+            await fs.access(path.join(this.outputDir, tempSiteId));
+            // Directory exists, try with counter
+            tempSiteId = `${siteId}${counter}`;
+            counter++;
+          } catch (error) {
+            // Directory doesn't exist, we can use this name
+            siteId = tempSiteId;
+            break;
+          }
+        }
+      } else {
+        // Fallback to timestamp
+        siteId = Date.now().toString();
+      }
+
       const siteDir = path.join(this.outputDir, siteId);
       await this.ensureDirectoryExists(siteDir);
       await this.ensureDirectoryExists(path.join(siteDir, "assets"));
@@ -356,6 +415,7 @@ class WebsiteCloner {
       // Save metadata
       const metadata = {
         originalUrl: targetUrl,
+        siteName: siteName || "",
         clonedAt: new Date().toISOString(),
         siteId: siteId,
         method: "axios-fallback",
@@ -397,16 +457,20 @@ class WebsiteCloner {
 const cloner = new WebsiteCloner();
 
 app.post("/clone-website", async (req, res) => {
-  const { url } = req.body;
+  const { url, name } = req.body;
 
   if (!url) {
     return res.status(400).json({ error: "URL is required" });
   }
 
+  if (!name) {
+    return res.status(400).json({ error: "Website name is required" });
+  }
+
   console.log(`Starting to clone website: ${url}`);
 
   try {
-    const result = await cloner.cloneWebsite(url);
+    const result = await cloner.cloneWebsite(url, name);
     console.log(`Clone result:`, result);
     res.json(result);
   } catch (error) {
@@ -417,6 +481,30 @@ app.post("/clone-website", async (req, res) => {
       error: error.message,
       stack: error.stack,
     });
+  }
+});
+
+// Check if a website name already exists
+app.get("/check-website-name/:name", async (req, res) => {
+  try {
+    const { name } = req.params;
+    const safeName = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "_")
+      .replace(/_+/g, "_")
+      .substring(0, 30);
+
+    // Check if directory exists directly
+    try {
+      await fs.access(path.join(cloner.outputDir, safeName));
+      // If we get here, the directory exists
+      res.json({ exists: true });
+    } catch (error) {
+      // Directory doesn't exist
+      res.json({ exists: false });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -500,13 +588,29 @@ app.use("/cloned-sites/:siteId/assets", (req, res, next) => {
   express.static(assetsPath)(req, res, next);
 });
 
+// Use editor routes first (important for route priority)
+const editorRoutes = require("./routes/editor");
+app.use("/", editorRoutes);
+
+// We no longer need this route as we'll use the dynamic routing below
+
 // Simple dynamic routing: serve cloned sites directly by folder name (dynamic routes )
 app.use("/:siteName", async (req, res, next) => {
   const { siteName } = req.params;
 
   // Skip if this is a known route or file extension
-  if (siteName.includes('.') ||
-    ['editor', 'api', 'public', 'cloned-sites', 'clone-website', 'preview'].includes(siteName)) {
+  if (
+    siteName.includes(".") ||
+    [
+      "editor",
+      "api",
+      "public",
+      "cloned-sites",
+      "clone-website",
+      "preview",
+      "site",
+    ].includes(siteName)
+  ) {
     return next();
   }
 
@@ -529,10 +633,6 @@ app.use("/cloned-sites/:siteId", (req, res, next) => {
   const sitePath = path.join(__dirname, "cloned_sites", siteId);
   express.static(sitePath)(req, res, next);
 });
-
-// Use editor routes
-const editorRoutes = require("./routes/editor");
-app.use("/", editorRoutes);
 
 // Serve the landing page
 app.get("/", async (req, res) => {
