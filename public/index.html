@@ -220,7 +220,7 @@
             Enter a website URL below to clone it. Once cloned, you can edit the content and styles directly in our editor.
         </p>
 
-        <div class="url-form">
+        <form class="url-form" id="cloneForm">
             <div class="input-group">
                 <label for="websiteUrl">Website URL</label>
                 <input type="url" id="websiteUrl" class="url-input" placeholder="https://example.com" required>
@@ -228,10 +228,10 @@
             <div class="input-group">
                 <label for="websiteName">Website Name</label>
                 <input type="text" id="websiteName" class="url-input" placeholder="myawesomewebsite" required>
-                <small style="color: #666; margin-top: 4px; font-size: 0.85rem;">Use letters, numbers, and hyphens only. Cannot start with hyphen.</small>
+                <small style="color: #666; margin-top: 4px; font-size: 0.85rem;">Use letters, numbers, and hyphens only.</small>
             </div>
-            <button id="cloneButton" class="btn btn-primary">Clone Website</button>
-        </div>
+            <button type="submit" id="cloneButton" class="btn btn-primary">Clone Website</button>
+        </form>
 
         <div id="errorMessage" class="error-message"></div>
 
@@ -284,7 +284,8 @@
             });
 
             // Clone button click handler
-            cloneButton.addEventListener('click', async () => {
+            document.getElementById('cloneForm').addEventListener('submit', async (event) => {
+                event.preventDefault();
                 const url = urlInput.value.trim();
                 const websiteName = nameInput.value.trim();
                 
@@ -302,7 +303,7 @@
                 // Website name validation
                 const websiteNameRegex = /^[a-zA-Z0-9][-a-zA-Z0-9]*$/;
                 if (!websiteNameRegex.test(websiteName)) {
-                    showError('Invalid website name. Use only letters, numbers, and hyphens. Cannot start with hyphen.');
+                    showError('Invalid website name. Use only letters, numbers, and hyphens.');
                     return;
                 }
 
