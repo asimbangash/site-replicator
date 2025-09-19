@@ -51,6 +51,8 @@
             padding: 1.5rem;
             box-shadow: 0 4px 25px rgba(0, 0, 0, 0.1);
             overflow-y: auto;
+            overflow-x: hidden;
+            min-width: 0;
         }
 
         .main-content {
@@ -130,6 +132,9 @@
 
         .site-list {
             list-style: none;
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
         }
 
         .site-item {
@@ -140,6 +145,11 @@
             cursor: pointer;
             transition: all 0.2s ease;
             border: 2px solid transparent;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            word-break: break-word;
+            hyphens: auto;
+            border: 1px solid #e2e8f0;
         }
 
         .site-item:hover {
@@ -161,6 +171,29 @@
         .site-url {
             font-size: 0.8rem;
             opacity: 0.7;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            white-space: normal;
+        }
+        
+        .site-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 8px;
+        }
+        
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #e53e3e;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+        
+        .delete-btn:hover {
+            background-color: rgba(229, 62, 62, 0.1);
         }
 
         .btn {
@@ -290,6 +323,64 @@
         .toast.error {
             background: #e53e3e;
         }
+        
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            visibility: hidden;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        
+        .modal-overlay.show {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .modal-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #2d3748;
+        }
+        
+        .modal-text {
+            margin-bottom: 1.5rem;
+            color: #4a5568;
+        }
+        
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
+        
+        .btn-danger {
+            background: #e53e3e;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c53030;
+        }
 
         @media (max-width: 1200px) {
             .container {
@@ -363,6 +454,14 @@
                     <div id="editingContent" style="display: none;">
                         <div class="section">
                             <h3>✏️ Text Content</h3>
+                            <div class="search-container" style="margin-bottom: 12px; position: relative;">
+                                <input type="text" id="textSearchInput" class="form-input" placeholder="Search text content..." style="width: 100%; padding-right: 30px;">
+                                <button id="clearSearchBtn" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #666; cursor: pointer; display: none;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                        <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                                    </svg>
+                                </button>
+                            </div>
                             <div class="element-list" id="textElements">
                                 <div class="loading">Loading text elements...</div>
                             </div>
@@ -381,6 +480,21 @@
     </div>
 
     <div id="toast" class="toast"></div>
+    
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-title">Delete Site</div>
+            <div class="modal-text">
+                Are you sure you want to delete this site? This action cannot be undone.
+                <div id="deleteSiteName" style="font-weight: bold; margin-top: 8px;"></div>
+            </div>
+            <div class="modal-actions">
+                <button id="cancelDeleteBtn" class="btn btn-secondary">Cancel</button>
+                <button id="confirmDeleteBtn" class="btn btn-danger">Delete</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         let currentSiteId = null;
@@ -398,6 +512,10 @@
             // Preview button has been commented out
             // document.getElementById('previewBtn').addEventListener('click', openPreview);
             document.getElementById('deployBtn').addEventListener('click', deploySite);
+            
+            // Delete modal event listeners
+            document.getElementById('cancelDeleteBtn').addEventListener('click', hideDeleteModal);
+            document.getElementById('confirmDeleteBtn').addEventListener('click', confirmDeleteSite);
         }
         
         function deploySite() {
@@ -423,12 +541,35 @@
                         <div class="site-url">${site.originalUrl}</div>
                         <div class="site-url">Cloned: ${new Date(site.clonedAt).toLocaleDateString()}</div>
                         ${site.lastEdited ? `<div class="site-url">Edited: ${new Date(site.lastEdited).toLocaleDateString()}</div>` : ''}
+                        <div class="site-actions">
+                            <button class="delete-btn" data-site-id="${site.siteId}" data-site-name="${site.siteName || new URL(site.originalUrl).hostname}">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                                    <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                                </svg>
+                            </button>
+                        </div>
                     </li>
                 `).join('');
                 
                 // Add click listeners
                 siteList.querySelectorAll('.site-item').forEach(item => {
-                    item.addEventListener('click', () => selectSite(item.dataset.siteId));
+                    item.addEventListener('click', (e) => {
+                        // Don't trigger site selection when clicking the delete button
+                        if (e.target.closest('.delete-btn')) {
+                            e.stopPropagation();
+                            return;
+                        }
+                        selectSite(item.dataset.siteId);
+                    });
+                });
+                
+                // Add delete button click listeners
+                siteList.querySelectorAll('.delete-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        showDeleteModal(button.dataset.siteId, button.dataset.siteName);
+                    });
                 });
                 
             } catch (error) {
@@ -481,10 +622,13 @@
                 const response = await fetch(`/api/sites/${siteId}/content`);
                 const content = await response.json();
                 
+                // Store text elements globally for search functionality
+                window.allTextElements = content.textElements;
+                
                 // Load text elements
                 const textContainer = document.getElementById('textElements');
                 textContainer.innerHTML = content.textElements.map(element => `
-                    <div class="element-item">
+                    <div class="element-item" data-search-text="${element.text.toLowerCase()}">
                         <div class="element-tag">${element.tag}</div>
                         <div class="element-text">${element.text}</div>
                         <div class="input-group">
@@ -494,6 +638,9 @@
                         </div>
                     </div>
                 `).join('');
+                
+                // Set up search functionality
+                setupTextSearch();
                 
                 // Load color elements
                 const colorContainer = document.getElementById('colorElements');
@@ -660,6 +807,123 @@
             setTimeout(() => {
                 toast.classList.remove('show');
             }, 3000);
+        }
+        
+        // Text search functionality
+        function setupTextSearch() {
+            const searchInput = document.getElementById('textSearchInput');
+            const clearBtn = document.getElementById('clearSearchBtn');
+            if (!searchInput || !clearBtn) return;
+            
+            // Function to filter elements
+            const filterElements = () => {
+                const searchTerm = searchInput.value.toLowerCase().trim();
+                const textElements = document.querySelectorAll('#textElements .element-item');
+                
+                // Show/hide clear button based on search input
+                clearBtn.style.display = searchTerm ? 'block' : 'none';
+                
+                if (!searchTerm) {
+                    // If search is empty, show all elements
+                    textElements.forEach(element => {
+                        element.style.display = 'block';
+                    });
+                    return;
+                }
+                
+                // Filter elements based on search term
+                let matchCount = 0;
+                textElements.forEach(element => {
+                    const text = element.getAttribute('data-search-text');
+                    if (text && text.includes(searchTerm)) {
+                        element.style.display = 'block';
+                        matchCount++;
+                    } else {
+                        element.style.display = 'none';
+                    }
+                });
+                
+                // Show message if no results found
+                const noResultsEl = document.getElementById('noSearchResults');
+                if (matchCount === 0) {
+                    if (!noResultsEl) {
+                        const message = document.createElement('div');
+                        message.id = 'noSearchResults';
+                        message.className = 'loading';
+                        message.textContent = `No results found for "${searchTerm}"`;
+                        document.getElementById('textElements').appendChild(message);
+                    }
+                } else if (noResultsEl) {
+                    noResultsEl.remove();
+                }
+            };
+            
+            // Input event for real-time filtering
+            searchInput.addEventListener('input', filterElements);
+            
+            // Clear button click event
+            clearBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                filterElements();
+                searchInput.focus();
+            });
+            
+            // Escape key to clear search
+            searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    this.value = '';
+                    filterElements();
+                }
+            });
+        }
+        
+        // Delete site functionality
+        let siteToDelete = null;
+        
+        function showDeleteModal(siteId, siteName) {
+            siteToDelete = siteId;
+            document.getElementById('deleteSiteName').textContent = siteName;
+            document.getElementById('deleteModal').classList.add('show');
+        }
+        
+        function hideDeleteModal() {
+            document.getElementById('deleteModal').classList.remove('show');
+            siteToDelete = null;
+        }
+        
+        async function confirmDeleteSite() {
+            if (!siteToDelete) return;
+            
+            try {
+                const response = await fetch(`/api/sites/${siteToDelete}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // If the deleted site was the current site, reset the UI
+                    if (siteToDelete === currentSiteId) {
+                        currentSiteId = null;
+                        document.getElementById('previewFrame').src = 'about:blank';
+                        document.getElementById('noSiteSelected').style.display = 'block';
+                        document.getElementById('editingContent').style.display = 'none';
+                        document.getElementById('saveAllBtn').disabled = true;
+                        document.getElementById('deployBtn').disabled = true;
+                    }
+                    
+                    // Reload the sites list
+                    await loadSites();
+                    showToast('Site deleted successfully');
+                } else {
+                    throw new Error(result.error || 'Unknown error');
+                }
+            } catch (error) {
+                showToast(`Failed to delete site: ${error.message}`, 'error');
+                console.error('Delete error:', error);
+            } finally {
+                hideDeleteModal();
+            }
         }
     </script>
 </body>

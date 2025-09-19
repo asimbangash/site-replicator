@@ -89,7 +89,9 @@ router.get("/api/sites/:siteId/content", async (req, res) => {
     const colorElements = [];
 
     // Find editable text elements
-    $("h1, h2, h3, h4, h5, h6, p, span, a, button, div").each((i, elem) => {
+    $(
+      "h1, h2, h3, h4, h5, h6, p, span, a, button, div, li, td, th, label, strong, em, code, pre, blockquote"
+    ).each((i, elem) => {
       const $elem = $(elem);
       const text = $elem.text().trim();
 
@@ -562,5 +564,49 @@ async function updateSiteMetadata(siteId) {
     console.warn("Could not update metadata:", error);
   }
 }
+
+// Delete a cloned site
+router.delete("/api/sites/:siteId", async (req, res) => {
+  const { siteId } = req.params;
+
+  try {
+    const sitePath = path.join(CLONED_SITES_DIR, siteId);
+
+    // Check if site exists
+    try {
+      await fs.access(sitePath);
+    } catch (error) {
+      return res.status(404).json({ success: false, error: "Site not found" });
+    }
+
+    // Delete the site directory recursively
+    const deleteFolderRecursive = async (folderPath) => {
+      const files = await fs.readdir(folderPath);
+
+      for (const file of files) {
+        const curPath = path.join(folderPath, file);
+        const stats = await fs.stat(curPath);
+
+        if (stats.isDirectory()) {
+          // Recursive delete for directories
+          await deleteFolderRecursive(curPath);
+        } else {
+          // Delete file
+          await fs.unlink(curPath);
+        }
+      }
+
+      // Delete the empty directory
+      await fs.rmdir(folderPath);
+    };
+
+    await deleteFolderRecursive(sitePath);
+
+    res.json({ success: true, message: `Site ${siteId} deleted successfully` });
+  } catch (error) {
+    console.error("Error deleting site:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 module.exports = router;
