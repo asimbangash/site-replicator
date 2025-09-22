@@ -26,8 +26,14 @@ router.get("/editor", async (req, res) => {
                                 const siteElement = document.querySelector(\`[data-site-id="\${urlSiteId}"]\`);
                                 if (siteElement) {
                                     siteElement.click();
+                                } else {
+                                    console.warn(\`Site with ID \${urlSiteId} not found in the site list\`);
+                                    // Show a toast message that the site wasn't found
+                                    if (window.showToast) {
+                                        window.showToast('Requested site not found. Please select a site from the list.', 'error');
+                                    }
                                 }
-                            }, 500);
+                            }, 1000); // Increased timeout to ensure sites are loaded
                         }
                     });
                 </script>
@@ -80,7 +86,25 @@ router.get("/api/sites/:siteId/content", async (req, res) => {
   const { siteId } = req.params;
 
   try {
+    if (!siteId || siteId === 'undefined' || siteId === 'null') {
+      return res.status(400).json({ 
+        error: "Invalid site ID provided",
+        success: false 
+      });
+    }
+
     const htmlPath = path.join(CLONED_SITES_DIR, siteId, "index.html");
+    
+    // Check if the site directory exists
+    try {
+      await fs.access(path.join(CLONED_SITES_DIR, siteId));
+    } catch (error) {
+      return res.status(404).json({ 
+        error: `Site '${siteId}' not found`,
+        success: false 
+      });
+    }
+    
     const html = await fs.readFile(htmlPath, "utf8");
     const $ = cheerio.load(html);
 
@@ -274,7 +298,11 @@ router.get("/api/sites/:siteId/content", async (req, res) => {
       htmlPreview: htmlPreview,
     });
   } catch (error) {
-    res.status(404).json({ error: "Site not found" });
+    console.error(`Error loading site content for ${siteId}:`, error);
+    res.status(500).json({ 
+      error: `Failed to load site content: ${error.message}`,
+      success: false 
+    });
   }
 });
 
@@ -564,6 +592,114 @@ async function updateSiteMetadata(siteId) {
     console.warn("Could not update metadata:", error);
   }
 }
+
+// Update individual element (for click-to-select functionality)
+router.post("/api/sites/:siteId/element", async (req, res) => {
+  const { siteId } = req.params;
+  const { selector, action, value, elementId } = req.body;
+
+  try {
+    const htmlPath = path.join(CLONED_SITES_DIR, siteId, "index.html");
+    const html = await fs.readFile(htmlPath, "utf8");
+    const $ = cheerio.load(html);
+
+    // Find element by unique data attribute first, then fallback to selector
+    let elements = elementId ? $(`[data-editor-element-id="${elementId}"]`) : $();
+    
+    if (elements.length === 0) {
+      elements = $(selector);
+    }
+    
+    // If not found by direct selector, try fallback approaches
+    if (elements.length === 0) {
+      console.log(`Direct selector failed: ${selector}, trying fallbacks...`);
+      
+      // Try finding by nth-child selector
+      const nthChildMatch = selector.match(/^([^:]+):nth-child\((\d+)\)$/);
+      if (nthChildMatch) {
+        const tagName = nthChildMatch[1];
+        const index = parseInt(nthChildMatch[2]) - 1;
+        elements = $(tagName).eq(index);
+        console.log(`Trying nth-child: ${tagName}:eq(${index}), found: ${elements.length}`);
+      }
+      
+      // Try finding by tag name only if nth-child failed
+      if (elements.length === 0) {
+        const tagOnly = selector.split('.')[0].split(':')[0];
+        elements = $(tagOnly).first();
+        console.log(`Trying tag only: ${tagOnly}, found: ${elements.length}`);
+      }
+      
+      // Try finding by class name without tag
+      if (elements.length === 0 && selector.includes('.')) {
+        const classSelector = '.' + selector.split('.').slice(1).join('.');
+        elements = $(classSelector).first();
+        console.log(`Trying class only: ${classSelector}, found: ${elements.length}`);
+      }
+    }
+
+    if (elements.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        error: `Element not found: ${selector}` 
+      });
+    }
+
+    const element = elements.first();
+
+    switch (action) {
+      case 'updateText':
+        element.text(value);
+        break;
+        
+      case 'updateHtml':
+        element.html(value);
+        break;
+        
+      case 'updateCss':
+        element.attr('style', value);
+        break;
+        
+      default:
+        return res.status(400).json({ 
+          success: false, 
+          error: `Unknown action: ${action}` 
+        });
+    }
+
+    // Create backup
+    const backupPath = path.join(
+      CLONED_SITES_DIR,
+      siteId,
+      `backup_${Date.now()}.html`
+    );
+    try {
+      const originalHtml = await fs.readFile(htmlPath, "utf8");
+      await fs.writeFile(backupPath, originalHtml);
+    } catch (backupError) {
+      console.warn("Could not create backup:", backupError);
+    }
+
+    // Save the updated HTML
+    await fs.writeFile(htmlPath, $.html());
+
+    // Update metadata
+    await updateSiteMetadata(siteId);
+
+    res.json({
+      success: true,
+      message: `Element ${action} completed successfully`,
+      selector: selector
+    });
+
+  } catch (error) {
+    console.error('Element update error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: "Failed to update element: " + error.message 
+    });
+  }
+});
 
 // Delete a cloned site
 router.delete("/api/sites/:siteId", async (req, res) => {
