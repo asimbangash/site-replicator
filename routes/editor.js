@@ -86,25 +86,25 @@ router.get("/api/sites/:siteId/content", async (req, res) => {
   const { siteId } = req.params;
 
   try {
-    if (!siteId || siteId === 'undefined' || siteId === 'null') {
-      return res.status(400).json({ 
+    if (!siteId || siteId === "undefined" || siteId === "null") {
+      return res.status(400).json({
         error: "Invalid site ID provided",
-        success: false 
+        success: false,
       });
     }
 
     const htmlPath = path.join(CLONED_SITES_DIR, siteId, "index.html");
-    
+
     // Check if the site directory exists
     try {
       await fs.access(path.join(CLONED_SITES_DIR, siteId));
     } catch (error) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: `Site '${siteId}' not found`,
-        success: false 
+        success: false,
       });
     }
-    
+
     const html = await fs.readFile(htmlPath, "utf8");
     const $ = cheerio.load(html);
 
@@ -299,9 +299,9 @@ router.get("/api/sites/:siteId/content", async (req, res) => {
     });
   } catch (error) {
     console.error(`Error loading site content for ${siteId}:`, error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: `Failed to load site content: ${error.message}`,
-      success: false 
+      success: false,
     });
   }
 });
@@ -319,7 +319,7 @@ router.post("/api/sites/:siteId/text", async (req, res) => {
     // Find and update the element
     const element = $(`[data-editor-id="${elementId}"]`);
     console.log(
-      `Looking for element with ID: ${elementId}, found: ${element.length} elements`
+      `Element update request - Selector: "${selector}", ElementId: "${elementId}", Action: "${action}"`
     );
 
     if (element.length > 0) {
@@ -578,8 +578,32 @@ function getElementSelector($elem, index) {
   const classes = $elem.attr("class");
 
   if (id) return `#${id}`;
-  if (classes) return `${tag}.${classes.split(" ").join(".")}`;
-  return `${tag}:nth-of-type(${index + 1})`;
+  if (classes) {
+    // Filter out any temporary or empty classes
+    const cleanClasses = classes
+      .split(" ")
+      .filter(
+        (cls) =>
+          cls.trim() &&
+          cls !== "element-hover-selection" &&
+          cls !== "element-selected-selection"
+      )
+      .join(".");
+
+    if (cleanClasses) {
+      return `${tag}.${cleanClasses}`;
+    }
+  }
+
+  // Generate nth-child selector (consistent with frontend)
+  const parent = $elem.parent();
+  if (parent.length > 0) {
+    const siblings = parent.children();
+    const childIndex = siblings.index($elem[0]) + 1; // 1-based index
+    return `${tag}:nth-child(${childIndex})`;
+  }
+
+  return tag;
 }
 
 async function updateSiteMetadata(siteId) {
@@ -596,74 +620,227 @@ async function updateSiteMetadata(siteId) {
 // Update individual element (for click-to-select functionality)
 router.post("/api/sites/:siteId/element", async (req, res) => {
   const { siteId } = req.params;
-  const { selector, action, value, elementId } = req.body;
+  const { selector, action, value, elementId, position } = req.body;
 
   try {
+    console.log(
+      `Element update request - Selector: "${selector}", ElementId: "${elementId}", Action: "${action}"`
+    );
+    if (position) {
+      console.log(
+        `Position data: textSnippet="${position.textSnippet}", siblingIndex=${position.siblingIndex}`
+      );
+    }
+
     const htmlPath = path.join(CLONED_SITES_DIR, siteId, "index.html");
     const html = await fs.readFile(htmlPath, "utf8");
     const $ = cheerio.load(html);
 
     // Find element by unique data attribute first, then fallback to selector
-    let elements = elementId ? $(`[data-editor-element-id="${elementId}"]`) : $();
-    
+    let elements = elementId
+      ? $(`[data-editor-element-id="${elementId}"]`)
+      : $();
+    console.log(
+      `Found ${elements.length} elements by elementId: "${elementId}"`
+    );
+
     if (elements.length === 0) {
       elements = $(selector);
+      console.log(
+        `Found ${elements.length} elements by direct selector: "${selector}"`
+      );
     }
-    
+
     // If not found by direct selector, try fallback approaches
     if (elements.length === 0) {
       console.log(`Direct selector failed: ${selector}, trying fallbacks...`);
-      
-      // Try finding by nth-child selector
+
+      // Try finding by nth-child selector with proper context
       const nthChildMatch = selector.match(/^([^:]+):nth-child\((\d+)\)$/);
       if (nthChildMatch) {
         const tagName = nthChildMatch[1];
-        const index = parseInt(nthChildMatch[2]) - 1;
-        elements = $(tagName).eq(index);
-        console.log(`Trying nth-child: ${tagName}:eq(${index}), found: ${elements.length}`);
+        const nthIndex = parseInt(nthChildMatch[2]);
+
+        // nth-child is 1-based and considers all sibling elements
+        // We need to find the element that is the nth child of its parent
+        const candidateElements = $(tagName);
+
+        for (let i = 0; i < candidateElements.length; i++) {
+          const elem = candidateElements.eq(i);
+          const parent = elem.parent();
+          const siblings = parent.children();
+          const childIndex = siblings.index(elem[0]) + 1; // Convert to 1-based
+
+          if (childIndex === nthIndex) {
+            elements = elem;
+            console.log(
+              `Found nth-child element: ${tagName}:nth-child(${nthIndex}), actual child position: ${childIndex}`
+            );
+            break;
+          }
+        }
+
+        if (elements.length === 0) {
+          console.log(
+            `nth-child search failed for: ${tagName}:nth-child(${nthIndex})`
+          );
+        }
       }
-      
-      // Try finding by tag name only if nth-child failed
+
+      // Try more complex selector patterns
       if (elements.length === 0) {
-        const tagOnly = selector.split('.')[0].split(':')[0];
+        // Handle compound selectors like "ul li:nth-child(1)" or "#menu li:nth-child(2)" or "ul.nav li:nth-child(1)"
+        const complexMatch = selector.match(
+          /^(.+)\s+([^:]+):nth-child\((\d+)\)$/
+        );
+        if (complexMatch) {
+          const parentSelector = complexMatch[1];
+          const childTag = complexMatch[2];
+          const nthIndex = parseInt(complexMatch[3]);
+
+          const parentElements = $(parentSelector);
+          console.log(
+            `Trying complex selector: parent="${parentSelector}", child="${childTag}:nth-child(${nthIndex})", found parents: ${parentElements.length}`
+          );
+
+          for (let i = 0; i < parentElements.length; i++) {
+            const parent = parentElements.eq(i);
+            const children = parent.children();
+
+            // Find the nth child that matches the tag
+            let matchingChildCount = 0;
+            for (let j = 0; j < children.length; j++) {
+              const child = children.eq(j);
+              const childTagName = child.prop("tagName").toLowerCase();
+
+              if (childTagName === childTag) {
+                matchingChildCount++;
+                if (matchingChildCount === nthIndex) {
+                  elements = child;
+                  console.log(
+                    `Found complex selector element: ${selector} (child ${
+                      j + 1
+                    } of parent, ${matchingChildCount}th ${childTag})`
+                  );
+                  break;
+                }
+              }
+            }
+
+            if (elements.length > 0) break;
+          }
+
+          // If still not found, try the original simpler approach
+          if (elements.length === 0) {
+            for (let i = 0; i < parentElements.length; i++) {
+              const parent = parentElements.eq(i);
+              const nthChild = parent.children().eq(nthIndex - 1); // Convert to 0-based for .eq()
+
+              if (
+                nthChild.length > 0 &&
+                nthChild.prop("tagName").toLowerCase() === childTag
+              ) {
+                elements = nthChild;
+                console.log(
+                  `Found complex selector element (fallback): ${selector}`
+                );
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      // Try finding by tag name only if all other methods failed
+      if (elements.length === 0) {
+        const tagOnly = selector.split(".")[0].split(":")[0].split(" ").pop(); // Get last tag in case of compound selectors
         elements = $(tagOnly).first();
         console.log(`Trying tag only: ${tagOnly}, found: ${elements.length}`);
       }
-      
+
       // Try finding by class name without tag
-      if (elements.length === 0 && selector.includes('.')) {
-        const classSelector = '.' + selector.split('.').slice(1).join('.');
+      if (elements.length === 0 && selector.includes(".")) {
+        const classSelector = "." + selector.split(".").slice(1).join(".");
         elements = $(classSelector).first();
-        console.log(`Trying class only: ${classSelector}, found: ${elements.length}`);
+        console.log(
+          `Trying class only: ${classSelector}, found: ${elements.length}`
+        );
       }
     }
 
     if (elements.length === 0) {
-      return res.status(404).json({ 
-        success: false, 
-        error: `Element not found: ${selector}` 
+      return res.status(404).json({
+        success: false,
+        error: `Element not found: ${selector}`,
       });
     }
 
-    const element = elements.first();
+    // If we have multiple elements and position information, try to find the exact one
+    let element = elements.first();
+    if (elements.length > 1 && position) {
+      console.log(
+        `Found ${elements.length} elements, using position data to find exact match`
+      );
+
+      for (let i = 0; i < elements.length; i++) {
+        const candidateElement = elements.eq(i);
+        const candidateText = candidateElement.text().trim().substring(0, 50);
+        const candidateParent = candidateElement.parent();
+        const candidateSiblingIndex = candidateParent
+          .children()
+          .index(candidateElement[0]);
+
+        // Match by text snippet and sibling position
+        if (
+          candidateText === position.textSnippet &&
+          candidateSiblingIndex === position.siblingIndex
+        ) {
+          element = candidateElement;
+          console.log(
+            `Found exact element match using position: index ${candidateSiblingIndex}, text: "${candidateText}"`
+          );
+          break;
+        }
+      }
+
+      // Fallback: match by text snippet only
+      if (element === elements.first() && position.textSnippet) {
+        for (let i = 0; i < elements.length; i++) {
+          const candidateElement = elements.eq(i);
+          const candidateText = candidateElement.text().trim().substring(0, 50);
+
+          if (candidateText === position.textSnippet) {
+            element = candidateElement;
+            console.log(
+              `Found element match using text snippet: "${candidateText}"`
+            );
+            break;
+          }
+        }
+      }
+    } else if (elements.length > 1) {
+      console.log(
+        `Found ${elements.length} elements but no position data, using first element`
+      );
+    }
 
     switch (action) {
-      case 'updateText':
+      case "updateText":
         element.text(value);
         break;
-        
-      case 'updateHtml':
+
+      case "updateHtml":
         element.html(value);
         break;
-        
-      case 'updateCss':
-        element.attr('style', value);
+
+      case "updateCss":
+        element.attr("style", value);
         break;
-        
+
       default:
-        return res.status(400).json({ 
-          success: false, 
-          error: `Unknown action: ${action}` 
+        return res.status(400).json({
+          success: false,
+          error: `Unknown action: ${action}`,
         });
     }
 
@@ -689,14 +866,13 @@ router.post("/api/sites/:siteId/element", async (req, res) => {
     res.json({
       success: true,
       message: `Element ${action} completed successfully`,
-      selector: selector
+      selector: selector,
     });
-
   } catch (error) {
-    console.error('Element update error:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: "Failed to update element: " + error.message 
+    console.error("Element update error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to update element: " + error.message,
     });
   }
 });

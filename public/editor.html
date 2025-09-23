@@ -762,7 +762,13 @@
                                     className: e.target.className,
                                     id: e.target.id,
                                     elementId: elementId,
-                                    selector: generateSelector(e.target)
+                                    selector: generateSelector(e.target),
+                                    // Add position information for precise matching
+                                    position: {
+                                        parentSelector: e.target.parentElement ? generateSelector(e.target.parentElement) : null,
+                                        siblingIndex: Array.from(e.target.parentElement?.children || []).indexOf(e.target),
+                                        textSnippet: e.target.textContent.trim().substring(0, 50)
+                                    }
                                 }
                             }, '*');
                         }
@@ -786,7 +792,7 @@
                             if (className && typeof className === 'string') {
                                 className = className
                                     .split(' ')
-                                    .filter(cls => cls && 
+                                    .filter(cls => cls && cls.trim() &&
                                            cls !== 'element-hover-selection' && 
                                            cls !== 'element-selected-selection')
                                     .join(' ');
@@ -797,12 +803,34 @@
                                 return tagName + '.' + className.trim().split(' ').join('.');
                             }
                             
-                            // Generate nth-child selector
+                            // Generate nth-child selector with better context
                             const parent = element.parentElement;
                             if (parent) {
                                 const siblings = Array.from(parent.children);
                                 const index = siblings.indexOf(element) + 1;
-                                return tagName + ':nth-child(' + index + ')';
+                                const selector = tagName + ':nth-child(' + index + ')';
+                                
+                                // For common list/container patterns, include parent context
+                                const parentTag = parent.tagName.toLowerCase();
+                                if ((parentTag === 'ul' || parentTag === 'ol') && tagName === 'li') {
+                                    const parentId = parent.id;
+                                    const parentClass = parent.className;
+                                    
+                                    if (parentId) {
+                                        return '#' + parentId + ' ' + selector;
+                                    } else if (parentClass && typeof parentClass === 'string') {
+                                        const cleanParentClass = parentClass
+                                            .split(' ')
+                                            .filter(cls => cls && cls.trim())
+                                            .join('.');
+                                        if (cleanParentClass) {
+                                            return parentTag + '.' + cleanParentClass + ' ' + selector;
+                                        }
+                                    }
+                                    return parentTag + ' ' + selector;
+                                }
+                                
+                                return selector;
                             }
                             
                             return tagName;
@@ -951,14 +979,24 @@
         }
         
         function generateElementSelector(element) {
-            // Generate a unique selector for the element
+            // Generate a unique selector for the element (consistent with iframe version)
             const tagName = element.tagName.toLowerCase();
             const id = element.id;
-            const className = element.className;
+            let className = element.className;
+            
+            // Filter out temporary selection classes
+            if (className && typeof className === 'string') {
+                className = className
+                    .split(' ')
+                    .filter(cls => cls && cls.trim() &&
+                           cls !== 'element-hover-selection' && 
+                           cls !== 'element-selected-selection')
+                    .join(' ');
+            }
             
             if (id) return `#${id}`;
-            if (className && typeof className === 'string') {
-                return `${tagName}.${className.split(' ').join('.')}`;
+            if (className && className.trim()) {
+                return `${tagName}.${className.trim().split(' ').join('.')}`;
             }
             
             // Generate nth-child selector
@@ -987,7 +1025,8 @@
                         selector: elementSelector,
                         elementId: selectedElement.elementId,
                         action: 'updateText',
-                        value: newText
+                        value: newText,
+                        position: selectedElement.position
                     })
                 });
                 
@@ -1041,7 +1080,8 @@
                         selector: elementSelector,
                         elementId: selectedElement.elementId,
                         action: 'updateHtml',
-                        value: newHtml
+                        value: newHtml,
+                        position: selectedElement.position
                     })
                 });
                 
@@ -1072,7 +1112,8 @@
                         selector: elementSelector,
                         elementId: selectedElement.elementId,
                         action: 'updateCss',
-                        value: newCss
+                        value: newCss,
+                        position: selectedElement.position
                     })
                 });
                 
@@ -1105,7 +1146,8 @@
                         selector: elementSelector,
                         elementId: selectedElement.elementId,
                         action: 'updateCss',
-                        value: newStyle
+                        value: newStyle,
+                        position: selectedElement.position
                     })
                 });
                 
@@ -1139,7 +1181,8 @@
                         selector: elementSelector,
                         elementId: selectedElement.elementId,
                         action: 'updateCss',
-                        value: newStyle
+                        value: newStyle,
+                        position: selectedElement.position
                     })
                 });
                 
