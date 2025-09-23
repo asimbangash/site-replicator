@@ -489,6 +489,45 @@
                     </div>
 
                     <div id="editingContent" style="display: none;">
+                        <!-- Refresh Button -->
+                        <div class="section">
+                            <div style="text-align: center; margin-bottom: 1rem;">
+                                <button id="refreshBtn" class="btn btn-secondary" title="Refresh Editor">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                        <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                                        <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                                    </svg>
+                                    Refresh
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Website Font Controls -->
+                        <div class="section">
+                            <h3>🔤 Website Font</h3>
+                            <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1rem;">
+                                <select id="fontSelector" class="form-input" style="flex: 1;">
+                                    <option value="">Select Font</option>
+                                    <option value="Arial, sans-serif">Arial</option>
+                                    <option value="Helvetica, sans-serif">Helvetica</option>
+                                    <option value="'Times New Roman', serif">Times New Roman</option>
+                                    <option value="Georgia, serif">Georgia</option>
+                                    <option value="'Courier New', monospace">Courier New</option>
+                                    <option value="Verdana, sans-serif">Verdana</option>
+                                    <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
+                                    <option value="'Lucida Console', monospace">Lucida Console</option>
+                                    <option value="'Palatino Linotype', serif">Palatino</option>
+                                    <option value="Tahoma, sans-serif">Tahoma</option>
+                                    <option value="'Comic Sans MS', cursive">Comic Sans MS</option>
+                                    <option value="Impact, sans-serif">Impact</option>
+                                    <option value="'Lucida Sans Unicode', sans-serif">Lucida Sans</option>
+                                    <option value="'Book Antiqua', serif">Book Antiqua</option>
+                                    <option value="'Century Gothic', sans-serif">Century Gothic</option>
+                                </select>
+                                <button id="applyFont" class="btn btn-primary">Apply Font</button>
+                            </div>
+                        </div>
+
                         <!-- Selection Mode Toggle -->
                         <div class="section">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
@@ -520,8 +559,18 @@
                                     <div id="elementContent" style="font-size: 0.9rem; color: #333;"></div>
                                 </div>
 
+                                <!-- Image-specific Controls -->
+                                <div id="imageControls" class="editing-group" style="margin-bottom: 1.5rem; display: none;">
+                                    <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">🖼️ Image Actions</label>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        <button id="deleteImage" class="btn btn-danger">🗑️ Delete Image</button>
+                                        <button id="replaceImage" class="btn btn-primary">🔄 Replace Image</button>
+                                    </div>
+                                    <input type="file" id="imageFileInput" accept="image/*" style="display: none;">
+                                </div>
+
                                 <!-- Text Content Editor -->
-                                <div class="editing-group" style="margin-bottom: 1.5rem;">
+                                <div id="textContentEditor" class="editing-group" style="margin-bottom: 1.5rem;">
                                     <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">📝 Text Content</label>
                                     <div style="display: flex; gap: 0.5rem;">
                                         <textarea id="elementTextEditor" class="form-input" rows="3" style="resize: vertical;"></textarea>
@@ -530,7 +579,7 @@
                                 </div>
 
                                 <!-- HTML Content Editor -->
-                                <div class="editing-group" style="margin-bottom: 1.5rem;">
+                                <div id="htmlContentEditor" class="editing-group" style="margin-bottom: 1.5rem;">
                                     <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">🔧 HTML Content</label>
                                     <div style="display: flex; gap: 0.5rem;">
                                         <textarea id="elementHtmlEditor" class="form-input" rows="4" style="resize: vertical; font-family: 'Courier New', monospace;"></textarea>
@@ -539,7 +588,7 @@
                                 </div>
 
                                 <!-- CSS Style Editor -->
-                                <div class="editing-group" style="margin-bottom: 1.5rem;">
+                                <div id="cssStyleEditor" class="editing-group" style="margin-bottom: 1.5rem;">
                                     <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">🎨 CSS Styles</label>
                                     <div style="display: flex; gap: 0.5rem;">
                                         <textarea id="elementCssEditor" class="form-input" rows="3" style="resize: vertical; font-family: 'Courier New', monospace;" placeholder="color: red; background: blue; etc..."></textarea>
@@ -548,7 +597,7 @@
                                 </div>
 
                                 <!-- Quick Color Controls -->
-                                <div class="editing-group">
+                                <div id="colorControls" class="editing-group">
                                     <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">🎨 Quick Colors</label>
                                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
                                         <div style="display: flex; gap: 0.5rem; align-items: center;">
@@ -563,6 +612,7 @@
                                         </div>
                                     </div>
                                 </div>
+
                             </div>
                         </div>
 
@@ -631,6 +681,7 @@
         function setupEventListeners() {
             document.getElementById('saveAllBtn').addEventListener('click', saveAllChanges);
             document.getElementById('deployBtn').addEventListener('click', deploySite);
+            document.getElementById('refreshBtn').addEventListener('click', refreshEditor);
             
             // Delete modal event listeners
             document.getElementById('cancelDeleteBtn').addEventListener('click', hideDeleteModal);
@@ -646,11 +697,25 @@
             document.getElementById('updateElementCss').addEventListener('click', updateSelectedElementCss);
             document.getElementById('applyTextColor').addEventListener('click', applyTextColor);
             document.getElementById('applyBgColor').addEventListener('click', applyBgColor);
+            
+            // Image-specific event listeners
+            document.getElementById('deleteImage').addEventListener('click', deleteSelectedImage);
+            document.getElementById('replaceImage').addEventListener('click', () => {
+                document.getElementById('imageFileInput').click();
+            });
+            document.getElementById('imageFileInput').addEventListener('change', replaceSelectedImage);
+            
+            // Font style event listener
+            document.getElementById('applyFont').addEventListener('click', applyWebsiteFont);
         }
         
         function deploySite() {
             if (!currentSiteId) return;
             window.open(`/${currentSiteId}`, '_blank');
+        }
+        
+        function refreshEditor() {
+            window.location.reload();
         }
 
         // ================== Element Selection Functions ==================
@@ -953,6 +1018,39 @@
             document.getElementById('elementSelector').textContent = elementData.selector;
             document.getElementById('elementContent').textContent = elementData.textContent.substring(0, 100) + (elementData.textContent.length > 100 ? '...' : '');
             
+            // Check if this is an image element
+            const isImage = elementData.tagName.toLowerCase() === 'img';
+            
+            // Show/hide appropriate controls based on element type
+            const imageControls = document.getElementById('imageControls');
+            const textContentEditor = document.getElementById('textContentEditor');
+            const htmlContentEditor = document.getElementById('htmlContentEditor');
+            const cssStyleEditor = document.getElementById('cssStyleEditor');
+            const colorControls = document.getElementById('colorControls');
+            
+            if (isImage) {
+                // Show image controls, hide text/HTML editors
+                imageControls.style.display = 'block';
+                textContentEditor.style.display = 'none';
+                htmlContentEditor.style.display = 'none';
+                
+                // Keep CSS and color controls for styling
+                cssStyleEditor.style.display = 'block';
+                colorControls.style.display = 'block';
+                
+                // Update element content to show image info
+                const imgSrc = elementData.innerHTML.match(/src="([^"]*)"/) || ['', 'No source'];
+                const imgAlt = elementData.innerHTML.match(/alt="([^"]*)"/) || ['', 'No alt text'];
+                document.getElementById('elementContent').textContent = `Source: ${imgSrc[1]} | Alt: ${imgAlt[1]}`;
+            } else {
+                // Show regular controls, hide image controls
+                imageControls.style.display = 'none';
+                textContentEditor.style.display = 'block';
+                htmlContentEditor.style.display = 'block';
+                cssStyleEditor.style.display = 'block';
+                colorControls.style.display = 'block';
+            }
+            
             // Populate editors
             document.getElementById('elementTextEditor').value = elementData.textContent;
             document.getElementById('elementHtmlEditor').value = elementData.innerHTML;
@@ -1039,7 +1137,7 @@
                     updateElementInIframe(elementSelector, 'textContent', newText);
                     
                     showToast('Text updated successfully!');
-                    refreshPreview();
+                    
                 } else {
                     throw new Error(result.error);
                 }
@@ -1090,7 +1188,7 @@
                     selectedElement.innerHTML = newHtml;
                     updateElementInIframe(elementSelector, 'innerHTML', newHtml);
                     showToast('HTML updated successfully!');
-                    refreshPreview();
+                    
                 } else {
                     throw new Error(result.error);
                 }
@@ -1122,7 +1220,7 @@
                     selectedElement.style = newCss;
                     updateElementInIframe(elementSelector, 'style', newCss);
                     showToast('CSS updated successfully!');
-                    refreshPreview();
+                    
                 } else {
                     throw new Error(result.error);
                 }
@@ -1157,7 +1255,7 @@
                     document.getElementById('elementCssEditor').value = newStyle;
                     updateElementInIframe(elementSelector, 'style', newStyle);
                     showToast('Text color applied!');
-                    refreshPreview();
+                    
                 } else {
                     throw new Error(result.error);
                 }
@@ -1192,7 +1290,7 @@
                     document.getElementById('elementCssEditor').value = newStyle;
                     updateElementInIframe(elementSelector, 'style', newStyle);
                     showToast('Background color applied!');
-                    refreshPreview();
+                    
                 } else {
                     throw new Error(result.error);
                 }
@@ -1201,14 +1299,155 @@
             }
         }
         
-        function refreshPreview() {
-            const previewFrame = document.getElementById('previewFrame');
-            if (previewFrame.src && previewFrame.src !== 'about:blank') {
-                // Add timestamp to force refresh
-                const url = new URL(previewFrame.src);
-                url.searchParams.set('t', Date.now());
-                previewFrame.src = url.toString();
+        // ================== Font Functions ==================
+        
+        async function applyWebsiteFont() {
+            if (!currentSiteId) return;
+            
+            const fontFamily = document.getElementById('fontSelector').value;
+            if (!fontFamily) {
+                showToast('Please select a font first', 'error');
+                return;
             }
+            
+            try {
+                const response = await fetch(`/api/sites/${currentSiteId}/font`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fontFamily })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    // Apply font to iframe body immediately
+                    const iframe = document.getElementById('previewFrame');
+                    try {
+                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                        iframeDoc.body.style.fontFamily = fontFamily;
+                    } catch (error) {
+                        console.log('Could not update font in iframe:', error);
+                    }
+                    
+                    showToast('Font applied successfully!');
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                showToast('Failed to apply font: ' + error.message, 'error');
+            }
+        }
+        
+        // ================== Image Functions ==================
+        
+        async function deleteSelectedImage() {
+            if (!selectedElement || !currentSiteId || !elementSelector) return;
+            
+            if (!confirm('Are you sure you want to delete this image? This action cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/sites/${currentSiteId}/element`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        selector: elementSelector,
+                        elementId: selectedElement.elementId,
+                        action: 'delete',
+                        position: selectedElement.position
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    // Remove element from iframe
+                    const iframe = document.getElementById('previewFrame');
+                    try {
+                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                        const element = iframeDoc.querySelector(`[data-editor-element-id="${selectedElement.elementId}"]`);
+                        if (element) {
+                            element.remove();
+                        }
+                    } catch (error) {
+                        console.log('Could not remove element from iframe:', error);
+                    }
+                    
+                    showToast('Image deleted successfully!');
+                    clearElementSelection();
+                    
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                showToast('Failed to delete image: ' + error.message, 'error');
+            }
+        }
+        
+        async function replaceSelectedImage(event) {
+            if (!selectedElement || !currentSiteId || !elementSelector) return;
+            
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                showToast('Please select a valid image file', 'error');
+                return;
+            }
+            
+            // Check file size (limit to 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                showToast('Image file is too large. Please select a file under 5MB.', 'error');
+                return;
+            }
+            
+            try {
+                // Create FormData for file upload
+                const formData = new FormData();
+                formData.append('image', file);
+                formData.append('selector', elementSelector);
+                formData.append('elementId', selectedElement.elementId);
+                formData.append('position', JSON.stringify(selectedElement.position));
+                
+                showToast('Uploading image...', 'success');
+                
+                const response = await fetch(`/api/sites/${currentSiteId}/image/replace`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    // Update element in iframe
+                    const iframe = document.getElementById('previewFrame');
+                    try {
+                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                        const element = iframeDoc.querySelector(`[data-editor-element-id="${selectedElement.elementId}"]`);
+                        if (element && element.tagName.toLowerCase() === 'img') {
+                            element.src = result.imagePath;
+                        }
+                    } catch (error) {
+                        console.log('Could not update element in iframe:', error);
+                    }
+                    
+                    // Update selected element data
+                    selectedElement.innerHTML = selectedElement.innerHTML.replace(/src="[^"]*"/, `src="${result.imagePath}"`);
+                    
+                    // Update the element info display
+                    const imgAlt = selectedElement.innerHTML.match(/alt="([^"]*)"/) || ['', 'No alt text'];
+                    document.getElementById('elementContent').textContent = `Source: ${result.imagePath} | Alt: ${imgAlt[1]}`;
+                    
+                    showToast('Image replaced successfully!');
+                    
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                showToast('Failed to replace image: ' + error.message, 'error');
+            }
+            
+            // Clear the file input
+            event.target.value = '';
         }
         
         // ================== Utility Functions ==================
@@ -1290,6 +1529,18 @@
                         showDeleteModal(button.dataset.siteId, button.dataset.siteName);
                     });
                 });
+
+                // Auto-select previously selected site
+                const savedSiteId = localStorage.getItem('selectedSiteId');
+                if (savedSiteId) {
+                    const savedSiteElement = document.querySelector(`[data-site-id="${savedSiteId}"]`);
+                    if (savedSiteElement) {
+                        setTimeout(() => selectSite(savedSiteId), 100);
+                    } else {
+                        // Clear invalid saved site ID
+                        localStorage.removeItem('selectedSiteId');
+                    }
+                }
                 
             } catch (error) {
                 showToast('Failed to load sites', 'error');
@@ -1308,6 +1559,9 @@
             textChanges = {};
             colorChanges = {};
             updateUnsavedIndicator();
+            
+            // Save selected site to localStorage
+            localStorage.setItem('selectedSiteId', siteId);
             
             // Enable controls
             document.getElementById('saveAllBtn').disabled = false;
@@ -1673,11 +1927,15 @@
                     // If the deleted site was the current site, reset the UI
                     if (siteToDelete === currentSiteId) {
                         currentSiteId = null;
+                        localStorage.removeItem('selectedSiteId');
                         document.getElementById('previewFrame').src = 'about:blank';
                         document.getElementById('noSiteSelected').style.display = 'block';
                         document.getElementById('editingContent').style.display = 'none';
                         document.getElementById('saveAllBtn').disabled = true;
                         document.getElementById('deployBtn').disabled = true;
+                    } else if (siteToDelete === localStorage.getItem('selectedSiteId')) {
+                        // Clear localStorage if the deleted site was the saved one
+                        localStorage.removeItem('selectedSiteId');
                     }
                     
                     // Reload the sites list

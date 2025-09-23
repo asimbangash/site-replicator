@@ -2,9 +2,42 @@ const express = require("express");
 const fs = require("fs").promises;
 const path = require("path");
 const cheerio = require("cheerio");
+const multer = require("multer");
 
 const router = express.Router();
 const CLONED_SITES_DIR = "./cloned_sites";
+
+// Configure multer for image uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const siteId = req.params.siteId;
+    const assetsPath = path.join(CLONED_SITES_DIR, siteId, 'assets');
+    cb(null, assetsPath);
+  },
+  filename: function (req, file, cb) {
+    // Generate unique filename to avoid conflicts
+    const timestamp = Date.now();
+    const originalName = file.originalname;
+    const extension = path.extname(originalName);
+    const baseName = path.basename(originalName, extension);
+    cb(null, `${baseName}_${timestamp}${extension}`);
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  },
+  fileFilter: function (req, file, cb) {
+    // Check if file is an image
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  }
+});
 
 // Serve the editor dashboard
 router.get("/editor", async (req, res) => {
@@ -837,6 +870,10 @@ router.post("/api/sites/:siteId/element", async (req, res) => {
         element.attr("style", value);
         break;
 
+      case "delete":
+        element.remove();
+        break;
+
       default:
         return res.status(400).json({
           success: false,
@@ -918,6 +955,164 @@ router.delete("/api/sites/:siteId", async (req, res) => {
   } catch (error) {
     console.error("Error deleting site:", error);
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Apply font to entire website
+router.post("/api/sites/:siteId/font", async (req, res) => {
+  const { siteId } = req.params;
+  const { fontFamily } = req.body;
+
+  try {
+    if (!fontFamily) {
+      return res.status(400).json({ success: false, error: "Font family is required" });
+    }
+
+    const htmlPath = path.join(CLONED_SITES_DIR, siteId, "index.html");
+    const html = await fs.readFile(htmlPath, "utf8");
+    const $ = cheerio.load(html);
+
+    // Create or update a style tag for global font
+    let fontStyleTag = $('#website-font-style');
+    if (fontStyleTag.length === 0) {
+      // Create new style tag
+      $('head').append('<style id="website-font-style"></style>');
+      fontStyleTag = $('#website-font-style');
+    }
+
+    // Set the global font style
+    const fontCSS = `body, * { font-family: ${fontFamily} !important; }`;
+    fontStyleTag.html(fontCSS);
+
+    // Create backup
+    const backupPath = path.join(CLONED_SITES_DIR, siteId, `backup_${Date.now()}.html`);
+    try {
+      const originalHtml = await fs.readFile(htmlPath, "utf8");
+      await fs.writeFile(backupPath, originalHtml);
+    } catch (backupError) {
+      console.warn("Could not create backup:", backupError);
+    }
+
+    // Save the updated HTML
+    await fs.writeFile(htmlPath, $.html());
+
+    // Update metadata
+    await updateSiteMetadata(siteId);
+
+    res.json({
+      success: true,
+      message: "Font applied successfully",
+      fontFamily: fontFamily
+    });
+
+  } catch (error) {
+    console.error("Font application error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to apply font: " + error.message,
+    });
+  }
+});
+
+// Replace image
+router.post("/api/sites/:siteId/image/replace", upload.single('image'), async (req, res) => {
+  const { siteId } = req.params;
+  const { selector, elementId, position } = req.body;
+
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: "No image file provided" });
+    }
+
+    console.log(`Image replacement request - Selector: "${selector}", ElementId: "${elementId}"`);
+    
+    const htmlPath = path.join(CLONED_SITES_DIR, siteId, "index.html");
+    const html = await fs.readFile(htmlPath, "utf8");
+    const $ = cheerio.load(html);
+
+    // Find element by unique data attribute first, then fallback to selector
+    let elements = elementId ? $(`[data-editor-element-id="${elementId}"]`) : $();
+    
+    if (elements.length === 0) {
+      elements = $(selector);
+    }
+
+    if (elements.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: `Image element not found: ${selector}`,
+      });
+    }
+
+    // Find the exact element if multiple matches
+    let element = elements.first();
+    if (elements.length > 1 && position) {
+      const parsedPosition = typeof position === 'string' ? JSON.parse(position) : position;
+      
+      for (let i = 0; i < elements.length; i++) {
+        const candidateElement = elements.eq(i);
+        const candidateParent = candidateElement.parent();
+        const candidateSiblingIndex = candidateParent.children().index(candidateElement[0]);
+
+        if (candidateSiblingIndex === parsedPosition.siblingIndex) {
+          element = candidateElement;
+          break;
+        }
+      }
+    }
+
+    // Verify this is an image element
+    if (element.prop("tagName").toLowerCase() !== 'img') {
+      return res.status(400).json({
+        success: false,
+        error: "Selected element is not an image",
+      });
+    }
+
+    // Generate the new image path
+    const newImagePath = `./assets/${req.file.filename}`;
+    
+    // Update the src attribute
+    element.attr('src', newImagePath);
+
+    // Create backup
+    const backupPath = path.join(CLONED_SITES_DIR, siteId, `backup_${Date.now()}.html`);
+    try {
+      const originalHtml = await fs.readFile(htmlPath, "utf8");
+      await fs.writeFile(backupPath, originalHtml);
+    } catch (backupError) {
+      console.warn("Could not create backup:", backupError);
+    }
+
+    // Save the updated HTML
+    await fs.writeFile(htmlPath, $.html());
+
+    // Update metadata
+    await updateSiteMetadata(siteId);
+
+    res.json({
+      success: true,
+      message: "Image replaced successfully",
+      imagePath: newImagePath,
+      filename: req.file.filename
+    });
+
+  } catch (error) {
+    console.error("Image replacement error:", error);
+    
+    // Clean up uploaded file if there was an error
+    if (req.file) {
+      try {
+        await fs.unlink(req.file.path);
+      } catch (unlinkError) {
+        console.warn("Could not delete uploaded file:", unlinkError);
+      }
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: "Failed to replace image: " + error.message,
+    });
   }
 });
 
