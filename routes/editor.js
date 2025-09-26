@@ -2,9 +2,42 @@ const express = require("express");
 const fs = require("fs").promises;
 const path = require("path");
 const cheerio = require("cheerio");
+const multer = require("multer");
 
 const router = express.Router();
 const CLONED_SITES_DIR = "./cloned_sites";
+
+// Configure multer for image uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const siteId = req.params.siteId;
+    const assetsPath = path.join(CLONED_SITES_DIR, siteId, 'assets');
+    cb(null, assetsPath);
+  },
+  filename: function (req, file, cb) {
+    // Generate unique filename to avoid conflicts
+    const timestamp = Date.now();
+    const originalName = file.originalname;
+    const extension = path.extname(originalName);
+    const baseName = path.basename(originalName, extension);
+    cb(null, `${baseName}_${timestamp}${extension}`);
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  },
+  fileFilter: function (req, file, cb) {
+    // Check if file is an image
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  }
+});
 
 // Serve the editor dashboard
 router.get("/editor", async (req, res) => {
@@ -26,8 +59,14 @@ router.get("/editor", async (req, res) => {
                                 const siteElement = document.querySelector(\`[data-site-id="\${urlSiteId}"]\`);
                                 if (siteElement) {
                                     siteElement.click();
+                                } else {
+                                    console.warn(\`Site with ID \${urlSiteId} not found in the site list\`);
+                                    // Show a toast message that the site wasn't found
+                                    if (window.showToast) {
+                                        window.showToast('Requested site not found. Please select a site from the list.', 'error');
+                                    }
                                 }
-                            }, 500);
+                            }, 1000); // Increased timeout to ensure sites are loaded
                         }
                     });
                 </script>
@@ -80,7 +119,25 @@ router.get("/api/sites/:siteId/content", async (req, res) => {
   const { siteId } = req.params;
 
   try {
+    if (!siteId || siteId === "undefined" || siteId === "null") {
+      return res.status(400).json({
+        error: "Invalid site ID provided",
+        success: false,
+      });
+    }
+
     const htmlPath = path.join(CLONED_SITES_DIR, siteId, "index.html");
+
+    // Check if the site directory exists
+    try {
+      await fs.access(path.join(CLONED_SITES_DIR, siteId));
+    } catch (error) {
+      return res.status(404).json({
+        error: `Site '${siteId}' not found`,
+        success: false,
+      });
+    }
+
     const html = await fs.readFile(htmlPath, "utf8");
     const $ = cheerio.load(html);
 
@@ -274,7 +331,11 @@ router.get("/api/sites/:siteId/content", async (req, res) => {
       htmlPreview: htmlPreview,
     });
   } catch (error) {
-    res.status(404).json({ error: "Site not found" });
+    console.error(`Error loading site content for ${siteId}:`, error);
+    res.status(500).json({
+      error: `Failed to load site content: ${error.message}`,
+      success: false,
+    });
   }
 });
 
@@ -291,7 +352,7 @@ router.post("/api/sites/:siteId/text", async (req, res) => {
     // Find and update the element
     const element = $(`[data-editor-id="${elementId}"]`);
     console.log(
-      `Looking for element with ID: ${elementId}, found: ${element.length} elements`
+      `Element update request - Selector: "${selector}", ElementId: "${elementId}", Action: "${action}"`
     );
 
     if (element.length > 0) {
@@ -550,8 +611,32 @@ function getElementSelector($elem, index) {
   const classes = $elem.attr("class");
 
   if (id) return `#${id}`;
-  if (classes) return `${tag}.${classes.split(" ").join(".")}`;
-  return `${tag}:nth-of-type(${index + 1})`;
+  if (classes) {
+    // Filter out any temporary or empty classes
+    const cleanClasses = classes
+      .split(" ")
+      .filter(
+        (cls) =>
+          cls.trim() &&
+          cls !== "element-hover-selection" &&
+          cls !== "element-selected-selection"
+      )
+      .join(".");
+
+    if (cleanClasses) {
+      return `${tag}.${cleanClasses}`;
+    }
+  }
+
+  // Generate nth-child selector (consistent with frontend)
+  const parent = $elem.parent();
+  if (parent.length > 0) {
+    const siblings = parent.children();
+    const childIndex = siblings.index($elem[0]) + 1; // 1-based index
+    return `${tag}:nth-child(${childIndex})`;
+  }
+
+  return tag;
 }
 
 async function updateSiteMetadata(siteId) {
@@ -564,6 +649,270 @@ async function updateSiteMetadata(siteId) {
     console.warn("Could not update metadata:", error);
   }
 }
+
+// Update individual element (for click-to-select functionality)
+router.post("/api/sites/:siteId/element", async (req, res) => {
+  const { siteId } = req.params;
+  const { selector, action, value, elementId, position } = req.body;
+
+  try {
+    console.log(
+      `Element update request - Selector: "${selector}", ElementId: "${elementId}", Action: "${action}"`
+    );
+    if (position) {
+      console.log(
+        `Position data: textSnippet="${position.textSnippet}", siblingIndex=${position.siblingIndex}`
+      );
+    }
+
+    const htmlPath = path.join(CLONED_SITES_DIR, siteId, "index.html");
+    const html = await fs.readFile(htmlPath, "utf8");
+    const $ = cheerio.load(html);
+
+    // Find element by unique data attribute first, then fallback to selector
+    let elements = elementId
+      ? $(`[data-editor-element-id="${elementId}"]`)
+      : $();
+    console.log(
+      `Found ${elements.length} elements by elementId: "${elementId}"`
+    );
+
+    if (elements.length === 0) {
+      elements = $(selector);
+      console.log(
+        `Found ${elements.length} elements by direct selector: "${selector}"`
+      );
+    }
+
+    // If not found by direct selector, try fallback approaches
+    if (elements.length === 0) {
+      console.log(`Direct selector failed: ${selector}, trying fallbacks...`);
+
+      // Try finding by nth-child selector with proper context
+      const nthChildMatch = selector.match(/^([^:]+):nth-child\((\d+)\)$/);
+      if (nthChildMatch) {
+        const tagName = nthChildMatch[1];
+        const nthIndex = parseInt(nthChildMatch[2]);
+
+        // nth-child is 1-based and considers all sibling elements
+        // We need to find the element that is the nth child of its parent
+        const candidateElements = $(tagName);
+
+        for (let i = 0; i < candidateElements.length; i++) {
+          const elem = candidateElements.eq(i);
+          const parent = elem.parent();
+          const siblings = parent.children();
+          const childIndex = siblings.index(elem[0]) + 1; // Convert to 1-based
+
+          if (childIndex === nthIndex) {
+            elements = elem;
+            console.log(
+              `Found nth-child element: ${tagName}:nth-child(${nthIndex}), actual child position: ${childIndex}`
+            );
+            break;
+          }
+        }
+
+        if (elements.length === 0) {
+          console.log(
+            `nth-child search failed for: ${tagName}:nth-child(${nthIndex})`
+          );
+        }
+      }
+
+      // Try more complex selector patterns
+      if (elements.length === 0) {
+        // Handle compound selectors like "ul li:nth-child(1)" or "#menu li:nth-child(2)" or "ul.nav li:nth-child(1)"
+        const complexMatch = selector.match(
+          /^(.+)\s+([^:]+):nth-child\((\d+)\)$/
+        );
+        if (complexMatch) {
+          const parentSelector = complexMatch[1];
+          const childTag = complexMatch[2];
+          const nthIndex = parseInt(complexMatch[3]);
+
+          const parentElements = $(parentSelector);
+          console.log(
+            `Trying complex selector: parent="${parentSelector}", child="${childTag}:nth-child(${nthIndex})", found parents: ${parentElements.length}`
+          );
+
+          for (let i = 0; i < parentElements.length; i++) {
+            const parent = parentElements.eq(i);
+            const children = parent.children();
+
+            // Find the nth child that matches the tag
+            let matchingChildCount = 0;
+            for (let j = 0; j < children.length; j++) {
+              const child = children.eq(j);
+              const childTagName = child.prop("tagName").toLowerCase();
+
+              if (childTagName === childTag) {
+                matchingChildCount++;
+                if (matchingChildCount === nthIndex) {
+                  elements = child;
+                  console.log(
+                    `Found complex selector element: ${selector} (child ${
+                      j + 1
+                    } of parent, ${matchingChildCount}th ${childTag})`
+                  );
+                  break;
+                }
+              }
+            }
+
+            if (elements.length > 0) break;
+          }
+
+          // If still not found, try the original simpler approach
+          if (elements.length === 0) {
+            for (let i = 0; i < parentElements.length; i++) {
+              const parent = parentElements.eq(i);
+              const nthChild = parent.children().eq(nthIndex - 1); // Convert to 0-based for .eq()
+
+              if (
+                nthChild.length > 0 &&
+                nthChild.prop("tagName").toLowerCase() === childTag
+              ) {
+                elements = nthChild;
+                console.log(
+                  `Found complex selector element (fallback): ${selector}`
+                );
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      // Try finding by tag name only if all other methods failed
+      if (elements.length === 0) {
+        const tagOnly = selector.split(".")[0].split(":")[0].split(" ").pop(); // Get last tag in case of compound selectors
+        elements = $(tagOnly).first();
+        console.log(`Trying tag only: ${tagOnly}, found: ${elements.length}`);
+      }
+
+      // Try finding by class name without tag
+      if (elements.length === 0 && selector.includes(".")) {
+        const classSelector = "." + selector.split(".").slice(1).join(".");
+        elements = $(classSelector).first();
+        console.log(
+          `Trying class only: ${classSelector}, found: ${elements.length}`
+        );
+      }
+    }
+
+    if (elements.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: `Element not found: ${selector}`,
+      });
+    }
+
+    // If we have multiple elements and position information, try to find the exact one
+    let element = elements.first();
+    if (elements.length > 1 && position) {
+      console.log(
+        `Found ${elements.length} elements, using position data to find exact match`
+      );
+
+      for (let i = 0; i < elements.length; i++) {
+        const candidateElement = elements.eq(i);
+        const candidateText = candidateElement.text().trim().substring(0, 50);
+        const candidateParent = candidateElement.parent();
+        const candidateSiblingIndex = candidateParent
+          .children()
+          .index(candidateElement[0]);
+
+        // Match by text snippet and sibling position
+        if (
+          candidateText === position.textSnippet &&
+          candidateSiblingIndex === position.siblingIndex
+        ) {
+          element = candidateElement;
+          console.log(
+            `Found exact element match using position: index ${candidateSiblingIndex}, text: "${candidateText}"`
+          );
+          break;
+        }
+      }
+
+      // Fallback: match by text snippet only
+      if (element === elements.first() && position.textSnippet) {
+        for (let i = 0; i < elements.length; i++) {
+          const candidateElement = elements.eq(i);
+          const candidateText = candidateElement.text().trim().substring(0, 50);
+
+          if (candidateText === position.textSnippet) {
+            element = candidateElement;
+            console.log(
+              `Found element match using text snippet: "${candidateText}"`
+            );
+            break;
+          }
+        }
+      }
+    } else if (elements.length > 1) {
+      console.log(
+        `Found ${elements.length} elements but no position data, using first element`
+      );
+    }
+
+    switch (action) {
+      case "updateText":
+        element.text(value);
+        break;
+
+      case "updateHtml":
+        element.html(value);
+        break;
+
+      case "updateCss":
+        element.attr("style", value);
+        break;
+
+      case "delete":
+        element.remove();
+        break;
+
+      default:
+        return res.status(400).json({
+          success: false,
+          error: `Unknown action: ${action}`,
+        });
+    }
+
+    // Create backup
+    const backupPath = path.join(
+      CLONED_SITES_DIR,
+      siteId,
+      `backup_${Date.now()}.html`
+    );
+    try {
+      const originalHtml = await fs.readFile(htmlPath, "utf8");
+      await fs.writeFile(backupPath, originalHtml);
+    } catch (backupError) {
+      console.warn("Could not create backup:", backupError);
+    }
+
+    // Save the updated HTML
+    await fs.writeFile(htmlPath, $.html());
+
+    // Update metadata
+    await updateSiteMetadata(siteId);
+
+    res.json({
+      success: true,
+      message: `Element ${action} completed successfully`,
+      selector: selector,
+    });
+  } catch (error) {
+    console.error("Element update error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to update element: " + error.message,
+    });
+  }
+});
 
 // Delete a cloned site
 router.delete("/api/sites/:siteId", async (req, res) => {
@@ -606,6 +955,164 @@ router.delete("/api/sites/:siteId", async (req, res) => {
   } catch (error) {
     console.error("Error deleting site:", error);
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Apply font to entire website
+router.post("/api/sites/:siteId/font", async (req, res) => {
+  const { siteId } = req.params;
+  const { fontFamily } = req.body;
+
+  try {
+    if (!fontFamily) {
+      return res.status(400).json({ success: false, error: "Font family is required" });
+    }
+
+    const htmlPath = path.join(CLONED_SITES_DIR, siteId, "index.html");
+    const html = await fs.readFile(htmlPath, "utf8");
+    const $ = cheerio.load(html);
+
+    // Create or update a style tag for global font
+    let fontStyleTag = $('#website-font-style');
+    if (fontStyleTag.length === 0) {
+      // Create new style tag
+      $('head').append('<style id="website-font-style"></style>');
+      fontStyleTag = $('#website-font-style');
+    }
+
+    // Set the global font style
+    const fontCSS = `body, * { font-family: ${fontFamily} !important; }`;
+    fontStyleTag.html(fontCSS);
+
+    // Create backup
+    const backupPath = path.join(CLONED_SITES_DIR, siteId, `backup_${Date.now()}.html`);
+    try {
+      const originalHtml = await fs.readFile(htmlPath, "utf8");
+      await fs.writeFile(backupPath, originalHtml);
+    } catch (backupError) {
+      console.warn("Could not create backup:", backupError);
+    }
+
+    // Save the updated HTML
+    await fs.writeFile(htmlPath, $.html());
+
+    // Update metadata
+    await updateSiteMetadata(siteId);
+
+    res.json({
+      success: true,
+      message: "Font applied successfully",
+      fontFamily: fontFamily
+    });
+
+  } catch (error) {
+    console.error("Font application error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to apply font: " + error.message,
+    });
+  }
+});
+
+// Replace image
+router.post("/api/sites/:siteId/image/replace", upload.single('image'), async (req, res) => {
+  const { siteId } = req.params;
+  const { selector, elementId, position } = req.body;
+
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: "No image file provided" });
+    }
+
+    console.log(`Image replacement request - Selector: "${selector}", ElementId: "${elementId}"`);
+    
+    const htmlPath = path.join(CLONED_SITES_DIR, siteId, "index.html");
+    const html = await fs.readFile(htmlPath, "utf8");
+    const $ = cheerio.load(html);
+
+    // Find element by unique data attribute first, then fallback to selector
+    let elements = elementId ? $(`[data-editor-element-id="${elementId}"]`) : $();
+    
+    if (elements.length === 0) {
+      elements = $(selector);
+    }
+
+    if (elements.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: `Image element not found: ${selector}`,
+      });
+    }
+
+    // Find the exact element if multiple matches
+    let element = elements.first();
+    if (elements.length > 1 && position) {
+      const parsedPosition = typeof position === 'string' ? JSON.parse(position) : position;
+      
+      for (let i = 0; i < elements.length; i++) {
+        const candidateElement = elements.eq(i);
+        const candidateParent = candidateElement.parent();
+        const candidateSiblingIndex = candidateParent.children().index(candidateElement[0]);
+
+        if (candidateSiblingIndex === parsedPosition.siblingIndex) {
+          element = candidateElement;
+          break;
+        }
+      }
+    }
+
+    // Verify this is an image element
+    if (element.prop("tagName").toLowerCase() !== 'img') {
+      return res.status(400).json({
+        success: false,
+        error: "Selected element is not an image",
+      });
+    }
+
+    // Generate the new image path
+    const newImagePath = `./assets/${req.file.filename}`;
+    
+    // Update the src attribute
+    element.attr('src', newImagePath);
+
+    // Create backup
+    const backupPath = path.join(CLONED_SITES_DIR, siteId, `backup_${Date.now()}.html`);
+    try {
+      const originalHtml = await fs.readFile(htmlPath, "utf8");
+      await fs.writeFile(backupPath, originalHtml);
+    } catch (backupError) {
+      console.warn("Could not create backup:", backupError);
+    }
+
+    // Save the updated HTML
+    await fs.writeFile(htmlPath, $.html());
+
+    // Update metadata
+    await updateSiteMetadata(siteId);
+
+    res.json({
+      success: true,
+      message: "Image replaced successfully",
+      imagePath: newImagePath,
+      filename: req.file.filename
+    });
+
+  } catch (error) {
+    console.error("Image replacement error:", error);
+    
+    // Clean up uploaded file if there was an error
+    if (req.file) {
+      try {
+        await fs.unlink(req.file.path);
+      } catch (unlinkError) {
+        console.warn("Could not delete uploaded file:", unlinkError);
+      }
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: "Failed to replace image: " + error.message,
+    });
   }
 });
 
