@@ -11,7 +11,7 @@ const CLONED_SITES_DIR = "./cloned_sites";
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     const siteId = req.params.siteId;
-    const assetsPath = path.join(CLONED_SITES_DIR, siteId, 'assets');
+    const assetsPath = path.join(CLONED_SITES_DIR, siteId, "assets");
     cb(null, assetsPath);
   },
   filename: function (req, file, cb) {
@@ -21,22 +21,22 @@ const storage = multer.diskStorage({
     const extension = path.extname(originalName);
     const baseName = path.basename(originalName, extension);
     cb(null, `${baseName}_${timestamp}${extension}`);
-  }
+  },
 });
 
-const upload = multer({ 
+const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
+    fileSize: 5 * 1024 * 1024, // 5MB limit
   },
   fileFilter: function (req, file, cb) {
     // Check if file is an image
-    if (file.mimetype.startsWith('image/')) {
+    if (file.mimetype.startsWith("image/")) {
       cb(null, true);
     } else {
-      cb(new Error('Only image files are allowed!'), false);
+      cb(new Error("Only image files are allowed!"), false);
     }
-  }
+  },
 });
 
 // Serve the editor dashboard
@@ -50,15 +50,23 @@ router.get("/editor", async (req, res) => {
     if (siteId) {
       const autoSelectScript = `
                 <script>
-                    // Auto-select site from URL parameter
+                    // Auto-select site from URL parameter (only if no site is saved in localStorage)
                     document.addEventListener('DOMContentLoaded', () => {
                         const urlSiteId = "${siteId}";
-                        if (urlSiteId) {
+                        const savedSiteId = localStorage.getItem('selectedSiteId');
+                        
+                        console.log('URL siteId:', urlSiteId, 'localStorage siteId:', savedSiteId);
+                        
+                        // Only use URL parameter if no site is saved in localStorage
+                        if (urlSiteId && !savedSiteId) {
+                            console.log('Using URL parameter since no localStorage');
                             // Wait a bit for sites to load
                             setTimeout(() => {
                                 const siteElement = document.querySelector(\`[data-site-id="\${urlSiteId}"]\`);
                                 if (siteElement) {
                                     siteElement.click();
+                                    // Clear URL parameter after selection
+                                    history.replaceState({}, document.title, window.location.pathname);
                                 } else {
                                     console.warn(\`Site with ID \${urlSiteId} not found in the site list\`);
                                     // Show a toast message that the site wasn't found
@@ -67,6 +75,14 @@ router.get("/editor", async (req, res) => {
                                     }
                                 }
                             }, 1000); // Increased timeout to ensure sites are loaded
+                        } else if (urlSiteId && savedSiteId && urlSiteId !== savedSiteId) {
+                            console.log('URL param differs from localStorage, clearing URL and using localStorage');
+                            // Clear URL parameter if localStorage has a different site
+                            history.replaceState({}, document.title, window.location.pathname);
+                        } else if (urlSiteId && savedSiteId && urlSiteId === savedSiteId) {
+                            console.log('URL param matches localStorage, clearing URL');
+                            // Clear URL parameter since localStorage will handle it
+                            history.replaceState({}, document.title, window.location.pathname);
                         }
                     });
                 </script>
@@ -965,7 +981,9 @@ router.post("/api/sites/:siteId/font", async (req, res) => {
 
   try {
     if (!fontFamily) {
-      return res.status(400).json({ success: false, error: "Font family is required" });
+      return res
+        .status(400)
+        .json({ success: false, error: "Font family is required" });
     }
 
     const htmlPath = path.join(CLONED_SITES_DIR, siteId, "index.html");
@@ -973,11 +991,11 @@ router.post("/api/sites/:siteId/font", async (req, res) => {
     const $ = cheerio.load(html);
 
     // Create or update a style tag for global font
-    let fontStyleTag = $('#website-font-style');
+    let fontStyleTag = $("#website-font-style");
     if (fontStyleTag.length === 0) {
       // Create new style tag
-      $('head').append('<style id="website-font-style"></style>');
-      fontStyleTag = $('#website-font-style');
+      $("head").append('<style id="website-font-style"></style>');
+      fontStyleTag = $("#website-font-style");
     }
 
     // Set the global font style
@@ -985,7 +1003,11 @@ router.post("/api/sites/:siteId/font", async (req, res) => {
     fontStyleTag.html(fontCSS);
 
     // Create backup
-    const backupPath = path.join(CLONED_SITES_DIR, siteId, `backup_${Date.now()}.html`);
+    const backupPath = path.join(
+      CLONED_SITES_DIR,
+      siteId,
+      `backup_${Date.now()}.html`
+    );
     try {
       const originalHtml = await fs.readFile(htmlPath, "utf8");
       await fs.writeFile(backupPath, originalHtml);
@@ -1002,9 +1024,8 @@ router.post("/api/sites/:siteId/font", async (req, res) => {
     res.json({
       success: true,
       message: "Font applied successfully",
-      fontFamily: fontFamily
+      fontFamily: fontFamily,
     });
-
   } catch (error) {
     console.error("Font application error:", error);
     res.status(500).json({
@@ -1015,105 +1036,121 @@ router.post("/api/sites/:siteId/font", async (req, res) => {
 });
 
 // Replace image
-router.post("/api/sites/:siteId/image/replace", upload.single('image'), async (req, res) => {
-  const { siteId } = req.params;
-  const { selector, elementId, position } = req.body;
+router.post(
+  "/api/sites/:siteId/image/replace",
+  upload.single("image"),
+  async (req, res) => {
+    const { siteId } = req.params;
+    const { selector, elementId, position } = req.body;
 
-  try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, error: "No image file provided" });
-    }
+    try {
+      if (!req.file) {
+        return res
+          .status(400)
+          .json({ success: false, error: "No image file provided" });
+      }
 
-    console.log(`Image replacement request - Selector: "${selector}", ElementId: "${elementId}"`);
-    
-    const htmlPath = path.join(CLONED_SITES_DIR, siteId, "index.html");
-    const html = await fs.readFile(htmlPath, "utf8");
-    const $ = cheerio.load(html);
+      console.log(
+        `Image replacement request - Selector: "${selector}", ElementId: "${elementId}"`
+      );
 
-    // Find element by unique data attribute first, then fallback to selector
-    let elements = elementId ? $(`[data-editor-element-id="${elementId}"]`) : $();
-    
-    if (elements.length === 0) {
-      elements = $(selector);
-    }
+      const htmlPath = path.join(CLONED_SITES_DIR, siteId, "index.html");
+      const html = await fs.readFile(htmlPath, "utf8");
+      const $ = cheerio.load(html);
 
-    if (elements.length === 0) {
-      return res.status(404).json({
-        success: false,
-        error: `Image element not found: ${selector}`,
-      });
-    }
+      // Find element by unique data attribute first, then fallback to selector
+      let elements = elementId
+        ? $(`[data-editor-element-id="${elementId}"]`)
+        : $();
 
-    // Find the exact element if multiple matches
-    let element = elements.first();
-    if (elements.length > 1 && position) {
-      const parsedPosition = typeof position === 'string' ? JSON.parse(position) : position;
-      
-      for (let i = 0; i < elements.length; i++) {
-        const candidateElement = elements.eq(i);
-        const candidateParent = candidateElement.parent();
-        const candidateSiblingIndex = candidateParent.children().index(candidateElement[0]);
+      if (elements.length === 0) {
+        elements = $(selector);
+      }
 
-        if (candidateSiblingIndex === parsedPosition.siblingIndex) {
-          element = candidateElement;
-          break;
+      if (elements.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: `Image element not found: ${selector}`,
+        });
+      }
+
+      // Find the exact element if multiple matches
+      let element = elements.first();
+      if (elements.length > 1 && position) {
+        const parsedPosition =
+          typeof position === "string" ? JSON.parse(position) : position;
+
+        for (let i = 0; i < elements.length; i++) {
+          const candidateElement = elements.eq(i);
+          const candidateParent = candidateElement.parent();
+          const candidateSiblingIndex = candidateParent
+            .children()
+            .index(candidateElement[0]);
+
+          if (candidateSiblingIndex === parsedPosition.siblingIndex) {
+            element = candidateElement;
+            break;
+          }
         }
       }
-    }
 
-    // Verify this is an image element
-    if (element.prop("tagName").toLowerCase() !== 'img') {
-      return res.status(400).json({
+      // Verify this is an image element
+      if (element.prop("tagName").toLowerCase() !== "img") {
+        return res.status(400).json({
+          success: false,
+          error: "Selected element is not an image",
+        });
+      }
+
+      // Generate the new image path
+      const newImagePath = `./assets/${req.file.filename}`;
+
+      // Update the src attribute
+      element.attr("src", newImagePath);
+
+      // Create backup
+      const backupPath = path.join(
+        CLONED_SITES_DIR,
+        siteId,
+        `backup_${Date.now()}.html`
+      );
+      try {
+        const originalHtml = await fs.readFile(htmlPath, "utf8");
+        await fs.writeFile(backupPath, originalHtml);
+      } catch (backupError) {
+        console.warn("Could not create backup:", backupError);
+      }
+
+      // Save the updated HTML
+      await fs.writeFile(htmlPath, $.html());
+
+      // Update metadata
+      await updateSiteMetadata(siteId);
+
+      res.json({
+        success: true,
+        message: "Image replaced successfully",
+        imagePath: newImagePath,
+        filename: req.file.filename,
+      });
+    } catch (error) {
+      console.error("Image replacement error:", error);
+
+      // Clean up uploaded file if there was an error
+      if (req.file) {
+        try {
+          await fs.unlink(req.file.path);
+        } catch (unlinkError) {
+          console.warn("Could not delete uploaded file:", unlinkError);
+        }
+      }
+
+      res.status(500).json({
         success: false,
-        error: "Selected element is not an image",
+        error: "Failed to replace image: " + error.message,
       });
     }
-
-    // Generate the new image path
-    const newImagePath = `./assets/${req.file.filename}`;
-    
-    // Update the src attribute
-    element.attr('src', newImagePath);
-
-    // Create backup
-    const backupPath = path.join(CLONED_SITES_DIR, siteId, `backup_${Date.now()}.html`);
-    try {
-      const originalHtml = await fs.readFile(htmlPath, "utf8");
-      await fs.writeFile(backupPath, originalHtml);
-    } catch (backupError) {
-      console.warn("Could not create backup:", backupError);
-    }
-
-    // Save the updated HTML
-    await fs.writeFile(htmlPath, $.html());
-
-    // Update metadata
-    await updateSiteMetadata(siteId);
-
-    res.json({
-      success: true,
-      message: "Image replaced successfully",
-      imagePath: newImagePath,
-      filename: req.file.filename
-    });
-
-  } catch (error) {
-    console.error("Image replacement error:", error);
-    
-    // Clean up uploaded file if there was an error
-    if (req.file) {
-      try {
-        await fs.unlink(req.file.path);
-      } catch (unlinkError) {
-        console.warn("Could not delete uploaded file:", unlinkError);
-      }
-    }
-    
-    res.status(500).json({
-      success: false,
-      error: "Failed to replace image: " + error.message,
-    });
   }
-});
+);
 
 module.exports = router;
