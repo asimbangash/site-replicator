@@ -57,9 +57,12 @@ router.get("/editor", async (req, res) => {
                         
                         console.log('URL siteId:', urlSiteId, 'localStorage siteId:', savedSiteId);
                         
-                        // Only use URL parameter if no site is saved in localStorage
-                        if (urlSiteId && !savedSiteId) {
-                            console.log('Using URL parameter since no localStorage');
+                        // Always use URL parameter when provided (for newly cloned sites)
+                        if (urlSiteId) {
+                            console.log('Using URL parameter for newly cloned site');
+                            // Clear localStorage to ensure new site is selected
+                            localStorage.removeItem('selectedSiteId');
+                            
                             // Wait a bit for sites to load
                             setTimeout(() => {
                                 const siteElement = document.querySelector(\`[data-site-id="\${urlSiteId}"]\`);
@@ -75,14 +78,6 @@ router.get("/editor", async (req, res) => {
                                     }
                                 }
                             }, 1000); // Increased timeout to ensure sites are loaded
-                        } else if (urlSiteId && savedSiteId && urlSiteId !== savedSiteId) {
-                            console.log('URL param differs from localStorage, clearing URL and using localStorage');
-                            // Clear URL parameter if localStorage has a different site
-                            history.replaceState({}, document.title, window.location.pathname);
-                        } else if (urlSiteId && savedSiteId && urlSiteId === savedSiteId) {
-                            console.log('URL param matches localStorage, clearing URL');
-                            // Clear URL parameter since localStorage will handle it
-                            history.replaceState({}, document.title, window.location.pathname);
                         }
                     });
                 </script>
