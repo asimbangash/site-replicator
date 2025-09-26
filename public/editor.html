@@ -755,6 +755,9 @@
                             document.querySelectorAll('.element-hover-selection, .element-selected-selection').forEach(el => {
                                 el.classList.remove('element-hover-selection', 'element-selected-selection');
                             });
+                            
+                            // Remove image indicator
+                            removeImageIndicator();
                         }
                         
                         function handleClick(e) {
@@ -799,11 +802,48 @@
                         function handleMouseOver(e) {
                             if (e.target !== selectedElement) {
                                 e.target.classList.add('element-hover-selection');
+                                
+                                // Show image indicator for img elements
+                                if (e.target.tagName.toLowerCase() === 'img') {
+                                    showImageIndicator(e.target);
+                                }
                             }
                         }
                         
                         function handleMouseOut(e) {
                             e.target.classList.remove('element-hover-selection');
+                            removeImageIndicator();
+                        }
+                        
+                        function showImageIndicator(imgElement) {
+                            removeImageIndicator(); // Remove any existing indicator
+                            
+                            const indicator = document.createElement('div');
+                            indicator.id = 'image-hover-indicator';
+                            indicator.textContent = '🖼️ Image';
+                            indicator.style.cssText = \`
+                                position: absolute;
+                                background: #667eea;
+                                color: white;
+                                padding: 4px 8px;
+                                border-radius: 4px;
+                                font-size: 12px;
+                                font-weight: 600;
+                                z-index: 10001;
+                                pointer-events: none;
+                                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                            \`;
+                            
+                            const rect = imgElement.getBoundingClientRect();
+                            indicator.style.left = (rect.left + window.scrollX) + 'px';
+                            indicator.style.top = (rect.top + window.scrollY - 25) + 'px';
+                            
+                            document.body.appendChild(indicator);
+                        }
+                        
+                        function removeImageIndicator() {
+                            const existing = document.getElementById('image-hover-indicator');
+                            if (existing) existing.remove();
                         }
                         
                         function generateSelector(element) {
