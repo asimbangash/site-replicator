@@ -382,6 +382,43 @@
             background: #c53030;
         }
 
+        /* Element selection styles */
+        .element-selection-active {
+            cursor: crosshair !important;
+        }
+
+        .element-selected {
+            outline: 3px solid #667eea !important;
+            outline-offset: 2px !important;
+            background-color: rgba(102, 126, 234, 0.1) !important;
+            position: relative !important;
+        }
+
+        .element-hover {
+            outline: 2px dashed #667eea !important;
+            outline-offset: 1px !important;
+        }
+
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .editing-group {
+            border-left: 3px solid #667eea;
+            padding-left: 1rem;
+        }
+
+        /* Selection overlay styles */
+        .selection-overlay {
+            position: fixed;
+            pointer-events: none;
+            border: 2px solid #667eea;
+            background: rgba(102, 126, 234, 0.1);
+            z-index: 10000;
+            transition: all 0.1s ease;
+        }
+
         @media (max-width: 1200px) {
             .container {
                 grid-template-columns: 1fr;
@@ -452,8 +489,140 @@
                     </div>
 
                     <div id="editingContent" style="display: none;">
+                        <!-- Refresh Button -->
                         <div class="section">
-                            <h3>✏️ Text Content</h3>
+                            <div style="text-align: center; margin-bottom: 1rem;">
+                                <button id="refreshBtn" class="btn btn-secondary" title="Refresh Editor">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                        <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                                        <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                                    </svg>
+                                    Refresh
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Website Font Controls -->
+                        <div class="section">
+                            <h3>🔤 Website Font</h3>
+                            <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1rem;">
+                                <select id="fontSelector" class="form-input" style="flex: 1;">
+                                    <option value="">Select Font</option>
+                                    <option value="Arial, sans-serif">Arial</option>
+                                    <option value="Helvetica, sans-serif">Helvetica</option>
+                                    <option value="'Times New Roman', serif">Times New Roman</option>
+                                    <option value="Georgia, serif">Georgia</option>
+                                    <option value="'Courier New', monospace">Courier New</option>
+                                    <option value="Verdana, sans-serif">Verdana</option>
+                                    <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
+                                    <option value="'Lucida Console', monospace">Lucida Console</option>
+                                    <option value="'Palatino Linotype', serif">Palatino</option>
+                                    <option value="Tahoma, sans-serif">Tahoma</option>
+                                    <option value="'Comic Sans MS', cursive">Comic Sans MS</option>
+                                    <option value="Impact, sans-serif">Impact</option>
+                                    <option value="'Lucida Sans Unicode', sans-serif">Lucida Sans</option>
+                                    <option value="'Book Antiqua', serif">Book Antiqua</option>
+                                    <option value="'Century Gothic', sans-serif">Century Gothic</option>
+                                </select>
+                                <button id="applyFont" class="btn btn-primary">Apply Font</button>
+                            </div>
+                        </div>
+
+                        <!-- Selection Mode Toggle -->
+                        <div class="section">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                <h3>🎯 Element Selection</h3>
+                                <button id="toggleSelectionMode" class="btn btn-primary">
+                                    Enable Click-to-Select
+                                </button>
+                            </div>
+                            <div id="selectionInstructions" style="background: #f0f8ff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; display: none;">
+                                <p style="margin: 0; color: #1a365d; font-size: 0.9rem;">
+                                    🖱️ Click on any element in the preview to select and edit it
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Selected Element Editor -->
+                        <div id="selectedElementEditor" style="display: none;">
+                            <div class="section">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                    <h3>✏️ Selected Element</h3>
+                                    <button id="clearSelection" class="btn btn-secondary btn-sm">Clear Selection</button>
+                                </div>
+                                
+                                <div id="elementInfo" style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                        <span id="elementTag" class="element-tag"></span>
+                                        <span id="elementSelector" style="font-size: 0.8rem; color: #666;"></span>
+                                    </div>
+                                    <div id="elementContent" style="font-size: 0.9rem; color: #333;"></div>
+                                </div>
+
+                                <!-- Image-specific Controls -->
+                                <div id="imageControls" class="editing-group" style="margin-bottom: 1.5rem; display: none;">
+                                    <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">🖼️ Image Actions</label>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        <button id="deleteImage" class="btn btn-danger">🗑️ Delete Image</button>
+                                        <button id="replaceImage" class="btn btn-primary">🔄 Replace Image</button>
+                                    </div>
+                                    <input type="file" id="imageFileInput" accept="image/*" style="display: none;">
+                                </div>
+
+                                <!-- Text Content Editor -->
+                                <div id="textContentEditor" class="editing-group" style="margin-bottom: 1.5rem;">
+                                    <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">📝 Text Content</label>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        <textarea id="elementTextEditor" class="form-input" rows="3" style="resize: vertical;"></textarea>
+                                        <button id="updateElementText" class="btn btn-success">Update</button>
+                                    </div>
+                                </div>
+
+                                <!-- HTML Content Editor -->
+                                <div id="htmlContentEditor" class="editing-group" style="margin-bottom: 1.5rem;">
+                                    <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">🔧 HTML Content</label>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        <textarea id="elementHtmlEditor" class="form-input" rows="4" style="resize: vertical; font-family: 'Courier New', monospace;"></textarea>
+                                        <button id="updateElementHtml" class="btn btn-success">Update</button>
+                                    </div>
+                                </div>
+
+                                <!-- CSS Style Editor -->
+                                <div id="cssStyleEditor" class="editing-group" style="margin-bottom: 1.5rem;">
+                                    <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">🎨 CSS Styles</label>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        <textarea id="elementCssEditor" class="form-input" rows="3" style="resize: vertical; font-family: 'Courier New', monospace;" placeholder="color: red; background: blue; etc..."></textarea>
+                                        <button id="updateElementCss" class="btn btn-success">Update</button>
+                                    </div>
+                                </div>
+
+                                <!-- Quick Color Controls -->
+                                <div id="colorControls" class="editing-group">
+                                    <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">🎨 Quick Colors</label>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                            <label style="font-size: 0.9rem;">Text:</label>
+                                            <input type="color" id="textColorPicker" class="color-input">
+                                            <button id="applyTextColor" class="btn btn-primary btn-sm">Apply</button>
+                                        </div>
+                                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                            <label style="font-size: 0.9rem;">Background:</label>
+                                            <input type="color" id="bgColorPicker" class="color-input">
+                                            <button id="applyBgColor" class="btn btn-primary btn-sm">Apply</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <!-- Fallback: Browse All Elements -->
+                        <div id="browseAllElements">
+                            <div class="section">
+                                <h3>📋 Browse All Elements</h3>
+                                <p style="color: #666; font-size: 0.9rem; margin-bottom: 1rem;">
+                                    Or browse and edit all text elements without selection
+                                </p>
                             <div class="search-container" style="margin-bottom: 12px; position: relative;">
                                 <input type="text" id="textSearchInput" class="form-input" placeholder="Search text content..." style="width: 100%; padding-right: 30px;">
                                 <button id="clearSearchBtn" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #666; cursor: pointer; display: none;">
@@ -464,13 +633,12 @@
                             </div>
                             <div class="element-list" id="textElements">
                                 <div class="loading">Loading text elements...</div>
-                            </div>
                         </div>
 
-                        <div class="section">
                             <h3>🎨 Colors</h3>
                             <div class="element-list" id="colorElements">
                                 <div class="loading">Loading color elements...</div>
+                            </div>
                             </div>
                         </div>
                     </div>
@@ -500,6 +668,9 @@
         let currentSiteId = null;
         let textChanges = {};
         let colorChanges = {};
+        let selectionMode = false;
+        let selectedElement = null;
+        let elementSelector = null;
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', async () => {
@@ -509,18 +680,805 @@
 
         function setupEventListeners() {
             document.getElementById('saveAllBtn').addEventListener('click', saveAllChanges);
-            // Preview button has been commented out
-            // document.getElementById('previewBtn').addEventListener('click', openPreview);
             document.getElementById('deployBtn').addEventListener('click', deploySite);
+            document.getElementById('refreshBtn').addEventListener('click', refreshEditor);
             
             // Delete modal event listeners
             document.getElementById('cancelDeleteBtn').addEventListener('click', hideDeleteModal);
             document.getElementById('confirmDeleteBtn').addEventListener('click', confirmDeleteSite);
+            
+            // Element selection event listeners
+            document.getElementById('toggleSelectionMode').addEventListener('click', toggleSelectionMode);
+            document.getElementById('clearSelection').addEventListener('click', clearElementSelection);
+            
+            // Element editing event listeners
+            document.getElementById('updateElementText').addEventListener('click', updateSelectedElementText);
+            document.getElementById('updateElementHtml').addEventListener('click', updateSelectedElementHtml);
+            document.getElementById('updateElementCss').addEventListener('click', updateSelectedElementCss);
+            document.getElementById('applyTextColor').addEventListener('click', applyTextColor);
+            document.getElementById('applyBgColor').addEventListener('click', applyBgColor);
+            
+            // Image-specific event listeners
+            document.getElementById('deleteImage').addEventListener('click', deleteSelectedImage);
+            document.getElementById('replaceImage').addEventListener('click', () => {
+                document.getElementById('imageFileInput').click();
+            });
+            document.getElementById('imageFileInput').addEventListener('change', replaceSelectedImage);
+            
+            // Font style event listener
+            document.getElementById('applyFont').addEventListener('click', applyWebsiteFont);
         }
         
         function deploySite() {
             if (!currentSiteId) return;
             window.open(`/${currentSiteId}`, '_blank');
+        }
+        
+        function refreshEditor() {
+            window.location.reload();
+        }
+
+        // ================== Element Selection Functions ==================
+        
+        function toggleSelectionMode() {
+            selectionMode = !selectionMode;
+            const button = document.getElementById('toggleSelectionMode');
+            const instructions = document.getElementById('selectionInstructions');
+            const iframe = document.getElementById('previewFrame');
+            
+            if (selectionMode) {
+                button.textContent = 'Disable Click-to-Select';
+                button.classList.remove('btn-primary');
+                button.classList.add('btn-secondary');
+                instructions.style.display = 'block';
+                
+                // Enable iframe click detection
+                enableIframeInteraction();
+            } else {
+                button.textContent = 'Enable Click-to-Select';
+                button.classList.remove('btn-secondary');
+                button.classList.add('btn-primary');
+                instructions.style.display = 'none';
+                
+                // Disable iframe interaction
+                disableIframeInteraction();
+                clearElementSelection();
+            }
+        }
+        
+        function enableIframeInteraction() {
+            const iframe = document.getElementById('previewFrame');
+            
+            // Function to inject selection functionality
+            const injectSelectionScript = () => {
+                try {
+                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                    
+                    // Remove any existing selection script
+                    const existingScript = iframeDoc.getElementById('element-selection-script');
+                    if (existingScript) {
+                        existingScript.remove();
+                    }
+                    
+                    // Create and inject the selection script
+                    const script = iframeDoc.createElement('script');
+                    script.id = 'element-selection-script';
+                    script.innerHTML = `
+                        // Element selection functionality
+                        let selectedElement = null;
+                        
+                        function addSelectionStyles() {
+                            const style = document.createElement('style');
+                            style.id = 'selection-styles';
+                            style.innerHTML = \`
+                                .element-hover-selection {
+                                    outline: 2px dashed #667eea !important;
+                                    outline-offset: 1px !important;
+                                    cursor: pointer !important;
+                                }
+                                .element-selected-selection {
+                                    outline: 3px solid #667eea !important;
+                                    outline-offset: 2px !important;
+                                    background-color: rgba(102, 126, 234, 0.1) !important;
+                                    position: relative !important;
+                                }
+                                * {
+                                    cursor: crosshair !important;
+                                }
+                            \`;
+                            document.head.appendChild(style);
+                        }
+                        
+                        function removeSelectionStyles() {
+                            const style = document.getElementById('selection-styles');
+                            if (style) style.remove();
+                            
+                            // Remove all selection classes
+                            document.querySelectorAll('.element-hover-selection, .element-selected-selection').forEach(el => {
+                                el.classList.remove('element-hover-selection', 'element-selected-selection');
+                            });
+                        }
+                        
+                        function handleClick(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            // Clear previous selection
+                            if (selectedElement) {
+                                selectedElement.classList.remove('element-selected-selection');
+                            }
+                            
+                            // Select new element
+                            selectedElement = e.target;
+                            selectedElement.classList.add('element-selected-selection');
+                            
+                            // Add a unique data attribute for reliable selection
+                            const elementId = 'elem_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                            e.target.setAttribute('data-editor-element-id', elementId);
+                            
+                            // Send selection to parent window
+                            window.parent.postMessage({
+                                type: 'elementSelected',
+                                elementData: {
+                                    tagName: e.target.tagName.toLowerCase(),
+                                    textContent: e.target.textContent.trim(),
+                                    innerHTML: e.target.innerHTML,
+                                    style: e.target.getAttribute('style') || '',
+                                    className: e.target.className,
+                                    id: e.target.id,
+                                    elementId: elementId,
+                                    selector: generateSelector(e.target),
+                                    // Add position information for precise matching
+                                    position: {
+                                        parentSelector: e.target.parentElement ? generateSelector(e.target.parentElement) : null,
+                                        siblingIndex: Array.from(e.target.parentElement?.children || []).indexOf(e.target),
+                                        textSnippet: e.target.textContent.trim().substring(0, 50)
+                                    }
+                                }
+                            }, '*');
+                        }
+                        
+                        function handleMouseOver(e) {
+                            if (e.target !== selectedElement) {
+                                e.target.classList.add('element-hover-selection');
+                            }
+                        }
+                        
+                        function handleMouseOut(e) {
+                            e.target.classList.remove('element-hover-selection');
+                        }
+                        
+                        function generateSelector(element) {
+                            const tagName = element.tagName.toLowerCase();
+                            const id = element.id;
+                            let className = element.className;
+                            
+                            // Filter out temporary selection classes
+                            if (className && typeof className === 'string') {
+                                className = className
+                                    .split(' ')
+                                    .filter(cls => cls && cls.trim() &&
+                                           cls !== 'element-hover-selection' && 
+                                           cls !== 'element-selected-selection')
+                                    .join(' ');
+                            }
+                            
+                            if (id) return '#' + id;
+                            if (className && className.trim()) {
+                                return tagName + '.' + className.trim().split(' ').join('.');
+                            }
+                            
+                            // Generate nth-child selector with better context
+                            const parent = element.parentElement;
+                            if (parent) {
+                                const siblings = Array.from(parent.children);
+                                const index = siblings.indexOf(element) + 1;
+                                const selector = tagName + ':nth-child(' + index + ')';
+                                
+                                // For common list/container patterns, include parent context
+                                const parentTag = parent.tagName.toLowerCase();
+                                if ((parentTag === 'ul' || parentTag === 'ol') && tagName === 'li') {
+                                    const parentId = parent.id;
+                                    const parentClass = parent.className;
+                                    
+                                    if (parentId) {
+                                        return '#' + parentId + ' ' + selector;
+                                    } else if (parentClass && typeof parentClass === 'string') {
+                                        const cleanParentClass = parentClass
+                                            .split(' ')
+                                            .filter(cls => cls && cls.trim())
+                                            .join('.');
+                                        if (cleanParentClass) {
+                                            return parentTag + '.' + cleanParentClass + ' ' + selector;
+                                        }
+                                    }
+                                    return parentTag + ' ' + selector;
+                                }
+                                
+                                return selector;
+                            }
+                            
+                            return tagName;
+                        }
+                        
+                        // Initialize selection mode
+                        addSelectionStyles();
+                        document.addEventListener('click', handleClick, true);
+                        document.addEventListener('mouseover', handleMouseOver);
+                        document.addEventListener('mouseout', handleMouseOut);
+                        
+                        // Disable all links and forms
+                        document.querySelectorAll('a, form, button, input[type="submit"]').forEach(el => {
+                            el.addEventListener('click', (e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                            }, true);
+                        });
+                    `;
+                    
+                    iframeDoc.body.appendChild(script);
+                    showToast('Element selection enabled! Click any element to select it.');
+                    
+                } catch (error) {
+                    console.log('Failed to inject selection script:', error);
+                    showToast('Unable to enable element selection. Try refreshing the preview.', 'error');
+                }
+            };
+            
+            // Set up iframe load handler
+            iframe.onload = injectSelectionScript;
+            
+            // If iframe is already loaded, inject immediately
+            if (iframe.src && iframe.src !== 'about:blank') {
+                setTimeout(injectSelectionScript, 100);
+            }
+        }
+        
+        function disableIframeInteraction() {
+            const iframe = document.getElementById('previewFrame');
+            
+            const removeSelectionScript = () => {
+                try {
+                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                    
+                    // Remove selection script and styles
+                    const script = iframeDoc.getElementById('element-selection-script');
+                    const styles = iframeDoc.getElementById('selection-styles');
+                    
+                    if (script) script.remove();
+                    if (styles) styles.remove();
+                    
+                    // Remove all selection classes
+                    iframeDoc.querySelectorAll('.element-hover-selection, .element-selected-selection').forEach(el => {
+                        el.classList.remove('element-hover-selection', 'element-selected-selection');
+                    });
+                    
+                } catch (error) {
+                    // Ignore cross-origin errors
+                }
+            };
+            
+            iframe.onload = removeSelectionScript;
+            
+            // Remove immediately if iframe is already loaded
+            if (iframe.src && iframe.src !== 'about:blank') {
+                setTimeout(removeSelectionScript, 100);
+            }
+        }
+        
+        // Listen for messages from iframe
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'elementSelected') {
+                handleElementSelection(event.data.elementData);
+            }
+        });
+        
+        function handleElementSelection(elementData) {
+            if (!selectionMode) return;
+            
+            // Store the selected element data
+            selectedElement = elementData;
+            elementSelector = elementData.selector;
+            
+            // Show editor interface
+            showElementEditor(elementData);
+            
+            showToast('Element selected! Edit it in the panel on the right.');
+        }
+        
+        function clearElementSelection() {
+            selectedElement = null;
+            elementSelector = null;
+            
+            // Hide editor interface
+            document.getElementById('selectedElementEditor').style.display = 'none';
+            document.getElementById('browseAllElements').style.display = 'block';
+            
+            // Clear selection in iframe
+            const iframe = document.getElementById('previewFrame');
+            try {
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                iframeDoc.querySelectorAll('.element-selected-selection').forEach(el => {
+                    el.classList.remove('element-selected-selection');
+                });
+            } catch (error) {
+                // Ignore cross-origin errors
+            }
+        }
+        
+        function showElementEditor(elementData) {
+            const editor = document.getElementById('selectedElementEditor');
+            const browseAll = document.getElementById('browseAllElements');
+            
+            editor.style.display = 'block';
+            browseAll.style.display = 'none';
+            
+            // Populate element info
+            document.getElementById('elementTag').textContent = elementData.tagName;
+            document.getElementById('elementSelector').textContent = elementData.selector;
+            document.getElementById('elementContent').textContent = elementData.textContent.substring(0, 100) + (elementData.textContent.length > 100 ? '...' : '');
+            
+            // Check if this is an image element
+            const isImage = elementData.tagName.toLowerCase() === 'img';
+            
+            // Show/hide appropriate controls based on element type
+            const imageControls = document.getElementById('imageControls');
+            const textContentEditor = document.getElementById('textContentEditor');
+            const htmlContentEditor = document.getElementById('htmlContentEditor');
+            const cssStyleEditor = document.getElementById('cssStyleEditor');
+            const colorControls = document.getElementById('colorControls');
+            
+            if (isImage) {
+                // Show image controls, hide text/HTML editors
+                imageControls.style.display = 'block';
+                textContentEditor.style.display = 'none';
+                htmlContentEditor.style.display = 'none';
+                
+                // Keep CSS and color controls for styling
+                cssStyleEditor.style.display = 'block';
+                colorControls.style.display = 'block';
+                
+                // Update element content to show image info
+                const imgSrc = elementData.innerHTML.match(/src="([^"]*)"/) || ['', 'No source'];
+                const imgAlt = elementData.innerHTML.match(/alt="([^"]*)"/) || ['', 'No alt text'];
+                document.getElementById('elementContent').textContent = `Source: ${imgSrc[1]} | Alt: ${imgAlt[1]}`;
+            } else {
+                // Show regular controls, hide image controls
+                imageControls.style.display = 'none';
+                textContentEditor.style.display = 'block';
+                htmlContentEditor.style.display = 'block';
+                cssStyleEditor.style.display = 'block';
+                colorControls.style.display = 'block';
+            }
+            
+            // Populate editors
+            document.getElementById('elementTextEditor').value = elementData.textContent;
+            document.getElementById('elementHtmlEditor').value = elementData.innerHTML;
+            document.getElementById('elementCssEditor').value = elementData.style;
+            
+            // Extract colors from style attribute if available
+            const style = elementData.style || '';
+            const colorMatch = style.match(/color\s*:\s*([^;]+)/);
+            const bgColorMatch = style.match(/background-color\s*:\s*([^;]+)/);
+            
+            if (colorMatch) {
+                const normalizedColor = normalizeColor(colorMatch[1].trim());
+                if (normalizedColor !== '#000000') {
+                    document.getElementById('textColorPicker').value = normalizedColor;
+                }
+            }
+            
+            if (bgColorMatch) {
+                const normalizedBgColor = normalizeColor(bgColorMatch[1].trim());
+                if (normalizedBgColor !== '#ffffff') {
+                    document.getElementById('bgColorPicker').value = normalizedBgColor;
+                }
+            }
+        }
+        
+        function generateElementSelector(element) {
+            // Generate a unique selector for the element (consistent with iframe version)
+            const tagName = element.tagName.toLowerCase();
+            const id = element.id;
+            let className = element.className;
+            
+            // Filter out temporary selection classes
+            if (className && typeof className === 'string') {
+                className = className
+                    .split(' ')
+                    .filter(cls => cls && cls.trim() &&
+                           cls !== 'element-hover-selection' && 
+                           cls !== 'element-selected-selection')
+                    .join(' ');
+            }
+            
+            if (id) return `#${id}`;
+            if (className && className.trim()) {
+                return `${tagName}.${className.trim().split(' ').join('.')}`;
+            }
+            
+            // Generate nth-child selector
+            const parent = element.parentElement;
+            if (parent) {
+                const siblings = Array.from(parent.children);
+                const index = siblings.indexOf(element) + 1;
+                return `${tagName}:nth-child(${index})`;
+            }
+            
+            return tagName;
+        }
+        
+        // ================== Element Update Functions ==================
+        
+        async function updateSelectedElementText() {
+            if (!selectedElement || !currentSiteId || !elementSelector) return;
+            
+            const newText = document.getElementById('elementTextEditor').value;
+            
+            try {
+                const response = await fetch(`/api/sites/${currentSiteId}/element`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        selector: elementSelector,
+                        elementId: selectedElement.elementId,
+                        action: 'updateText',
+                        value: newText,
+                        position: selectedElement.position
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    // Update the selected element data
+                    selectedElement.textContent = newText;
+                    
+                    // Update the element in iframe
+                    updateElementInIframe(elementSelector, 'textContent', newText);
+                    
+                    showToast('Text updated successfully!');
+                    
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                showToast('Failed to update text: ' + error.message, 'error');
+            }
+        }
+        
+        function updateElementInIframe(selector, property, value) {
+            const iframe = document.getElementById('previewFrame');
+            try {
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                const element = iframeDoc.querySelector(selector);
+                if (element) {
+                    if (property === 'textContent') {
+                        element.textContent = value;
+                    } else if (property === 'innerHTML') {
+                        element.innerHTML = value;
+                    } else if (property === 'style') {
+                        element.setAttribute('style', value);
+                    }
+                }
+            } catch (error) {
+                console.log('Could not update element in iframe:', error);
+            }
+        }
+        
+        async function updateSelectedElementHtml() {
+            if (!selectedElement || !currentSiteId || !elementSelector) return;
+            
+            const newHtml = document.getElementById('elementHtmlEditor').value;
+            
+            try {
+                const response = await fetch(`/api/sites/${currentSiteId}/element`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        selector: elementSelector,
+                        elementId: selectedElement.elementId,
+                        action: 'updateHtml',
+                        value: newHtml,
+                        position: selectedElement.position
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    selectedElement.innerHTML = newHtml;
+                    updateElementInIframe(elementSelector, 'innerHTML', newHtml);
+                    showToast('HTML updated successfully!');
+                    
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                showToast('Failed to update HTML: ' + error.message, 'error');
+            }
+        }
+        
+        async function updateSelectedElementCss() {
+            if (!selectedElement || !currentSiteId || !elementSelector) return;
+            
+            const newCss = document.getElementById('elementCssEditor').value;
+            
+            try {
+                const response = await fetch(`/api/sites/${currentSiteId}/element`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        selector: elementSelector,
+                        elementId: selectedElement.elementId,
+                        action: 'updateCss',
+                        value: newCss,
+                        position: selectedElement.position
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    selectedElement.style = newCss;
+                    updateElementInIframe(elementSelector, 'style', newCss);
+                    showToast('CSS updated successfully!');
+                    
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                showToast('Failed to update CSS: ' + error.message, 'error');
+            }
+        }
+        
+        async function applyTextColor() {
+            if (!selectedElement || !currentSiteId || !elementSelector) return;
+            
+            const color = document.getElementById('textColorPicker').value;
+            const currentStyle = selectedElement.style || '';
+            const newStyle = currentStyle.replace(/color\s*:[^;]*;?/g, '') + `color: ${color};`;
+            
+            try {
+                const response = await fetch(`/api/sites/${currentSiteId}/element`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        selector: elementSelector,
+                        elementId: selectedElement.elementId,
+                        action: 'updateCss',
+                        value: newStyle,
+                        position: selectedElement.position
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    selectedElement.style = newStyle;
+                    document.getElementById('elementCssEditor').value = newStyle;
+                    updateElementInIframe(elementSelector, 'style', newStyle);
+                    showToast('Text color applied!');
+                    
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                showToast('Failed to apply text color: ' + error.message, 'error');
+            }
+        }
+        
+        async function applyBgColor() {
+            if (!selectedElement || !currentSiteId || !elementSelector) return;
+            
+            const color = document.getElementById('bgColorPicker').value;
+            const currentStyle = selectedElement.style || '';
+            const newStyle = currentStyle.replace(/background-color\s*:[^;]*;?/g, '') + `background-color: ${color};`;
+            
+            try {
+                const response = await fetch(`/api/sites/${currentSiteId}/element`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        selector: elementSelector,
+                        elementId: selectedElement.elementId,
+                        action: 'updateCss',
+                        value: newStyle,
+                        position: selectedElement.position
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    selectedElement.style = newStyle;
+                    document.getElementById('elementCssEditor').value = newStyle;
+                    updateElementInIframe(elementSelector, 'style', newStyle);
+                    showToast('Background color applied!');
+                    
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                showToast('Failed to apply background color: ' + error.message, 'error');
+            }
+        }
+        
+        // ================== Font Functions ==================
+        
+        async function applyWebsiteFont() {
+            if (!currentSiteId) return;
+            
+            const fontFamily = document.getElementById('fontSelector').value;
+            if (!fontFamily) {
+                showToast('Please select a font first', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/sites/${currentSiteId}/font`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fontFamily })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    // Apply font to iframe body immediately
+                    const iframe = document.getElementById('previewFrame');
+                    try {
+                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                        iframeDoc.body.style.fontFamily = fontFamily;
+                    } catch (error) {
+                        console.log('Could not update font in iframe:', error);
+                    }
+                    
+                    showToast('Font applied successfully!');
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                showToast('Failed to apply font: ' + error.message, 'error');
+            }
+        }
+        
+        // ================== Image Functions ==================
+        
+        async function deleteSelectedImage() {
+            if (!selectedElement || !currentSiteId || !elementSelector) return;
+            
+            if (!confirm('Are you sure you want to delete this image? This action cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/sites/${currentSiteId}/element`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        selector: elementSelector,
+                        elementId: selectedElement.elementId,
+                        action: 'delete',
+                        position: selectedElement.position
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    // Remove element from iframe
+                    const iframe = document.getElementById('previewFrame');
+                    try {
+                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                        const element = iframeDoc.querySelector(`[data-editor-element-id="${selectedElement.elementId}"]`);
+                        if (element) {
+                            element.remove();
+                        }
+                    } catch (error) {
+                        console.log('Could not remove element from iframe:', error);
+                    }
+                    
+                    showToast('Image deleted successfully!');
+                    clearElementSelection();
+                    
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                showToast('Failed to delete image: ' + error.message, 'error');
+            }
+        }
+        
+        async function replaceSelectedImage(event) {
+            if (!selectedElement || !currentSiteId || !elementSelector) return;
+            
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                showToast('Please select a valid image file', 'error');
+                return;
+            }
+            
+            // Check file size (limit to 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                showToast('Image file is too large. Please select a file under 5MB.', 'error');
+                return;
+            }
+            
+            try {
+                // Create FormData for file upload
+                const formData = new FormData();
+                formData.append('image', file);
+                formData.append('selector', elementSelector);
+                formData.append('elementId', selectedElement.elementId);
+                formData.append('position', JSON.stringify(selectedElement.position));
+                
+                showToast('Uploading image...', 'success');
+                
+                const response = await fetch(`/api/sites/${currentSiteId}/image/replace`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    // Update element in iframe
+                    const iframe = document.getElementById('previewFrame');
+                    try {
+                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                        const element = iframeDoc.querySelector(`[data-editor-element-id="${selectedElement.elementId}"]`);
+                        if (element && element.tagName.toLowerCase() === 'img') {
+                            element.src = result.imagePath;
+                        }
+                    } catch (error) {
+                        console.log('Could not update element in iframe:', error);
+                    }
+                    
+                    // Update selected element data
+                    selectedElement.innerHTML = selectedElement.innerHTML.replace(/src="[^"]*"/, `src="${result.imagePath}"`);
+                    
+                    // Update the element info display
+                    const imgAlt = selectedElement.innerHTML.match(/alt="([^"]*)"/) || ['', 'No alt text'];
+                    document.getElementById('elementContent').textContent = `Source: ${result.imagePath} | Alt: ${imgAlt[1]}`;
+                    
+                    showToast('Image replaced successfully!');
+                    
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                showToast('Failed to replace image: ' + error.message, 'error');
+            }
+            
+            // Clear the file input
+            event.target.value = '';
+        }
+        
+        // ================== Utility Functions ==================
+        
+        function rgbToHex(rgb) {
+            if (!rgb || rgb === 'rgba(0, 0, 0, 0)' || rgb === 'transparent') return '#ffffff';
+            
+            const match = rgb.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+            if (match) {
+                const r = parseInt(match[1]).toString(16).padStart(2, '0');
+                const g = parseInt(match[2]).toString(16).padStart(2, '0');
+                const b = parseInt(match[3]).toString(16).padStart(2, '0');
+                return `#${r}${g}${b}`;
+            }
+            
+            return rgb.startsWith('#') ? rgb : '#000000';
+        }
+        
+        function normalizeColor(color) {
+            // Convert color values to hex format for color input
+            if (color.startsWith('#')) return color;
+            if (color.startsWith('rgb')) {
+                const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+                if (match) {
+                    const r = parseInt(match[1]).toString(16).padStart(2, '0');
+                    const g = parseInt(match[2]).toString(16).padStart(2, '0');
+                    const b = parseInt(match[3]).toString(16).padStart(2, '0');
+                    return `#${r}${g}${b}`;
+                }
+            }
+            return '#000000'; // Default fallback
         }
 
         async function loadSites() {
@@ -571,6 +1529,18 @@
                         showDeleteModal(button.dataset.siteId, button.dataset.siteName);
                     });
                 });
+
+                // Auto-select previously selected site
+                const savedSiteId = localStorage.getItem('selectedSiteId');
+                if (savedSiteId) {
+                    const savedSiteElement = document.querySelector(`[data-site-id="${savedSiteId}"]`);
+                    if (savedSiteElement) {
+                        setTimeout(() => selectSite(savedSiteId), 100);
+                    } else {
+                        // Clear invalid saved site ID
+                        localStorage.removeItem('selectedSiteId');
+                    }
+                }
                 
             } catch (error) {
                 showToast('Failed to load sites', 'error');
@@ -589,6 +1559,9 @@
             textChanges = {};
             colorChanges = {};
             updateUnsavedIndicator();
+            
+            // Save selected site to localStorage
+            localStorage.setItem('selectedSiteId', siteId);
             
             // Enable controls
             document.getElementById('saveAllBtn').disabled = false;
@@ -614,19 +1587,41 @@
             document.getElementById('noSiteSelected').style.display = 'none';
             document.getElementById('editingContent').style.display = 'block';
             
-            await loadSiteContent(siteId);
+            // Wait for DOM to update before loading content
+            setTimeout(async () => {
+                await loadSiteContent(siteId);
+            }, 50);
         }
 
         async function loadSiteContent(siteId) {
             try {
+                if (!siteId) {
+                    console.warn('loadSiteContent called without siteId');
+                    return;
+                }
+                
                 const response = await fetch(`/api/sites/${siteId}/content`);
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch site content: ${response.status} ${response.statusText}`);
+                }
+                
                 const content = await response.json();
+                
+                if (!content || !content.textElements) {
+                    throw new Error('Invalid content structure received from server');
+                }
                 
                 // Store text elements globally for search functionality
                 window.allTextElements = content.textElements;
                 
                 // Load text elements
                 const textContainer = document.getElementById('textElements');
+                if (!textContainer) {
+                    console.error('textElements container not found in DOM');
+                    throw new Error('Text elements container not found. The page may not be fully loaded.');
+                }
+                
                 textContainer.innerHTML = content.textElements.map(element => `
                     <div class="element-item" data-search-text="${element.text.toLowerCase()}">
                         <div class="element-tag">${element.tag}</div>
@@ -644,6 +1639,11 @@
                 
                 // Load color elements
                 const colorContainer = document.getElementById('colorElements');
+                if (!colorContainer) {
+                    console.error('colorElements container not found in DOM');
+                    throw new Error('Color elements container not found. The page may not be fully loaded.');
+                }
+                
                 colorContainer.innerHTML = content.colorElements.map(element => {
                     const displayText = element.text || element.value;
                     const typeLabel = element.type === 'text' ? '📝 Text Color' : 
@@ -669,24 +1669,46 @@
                 }).join('');
                 
                 // Add change listeners
-                textContainer.querySelectorAll('input[data-type="text"]').forEach(input => {
-                    input.addEventListener('input', () => markAsChanged());
-                });
-                
-                colorContainer.querySelectorAll('input[data-type="color"], input[data-type="color-text"]').forEach(input => {
-                    input.addEventListener('input', () => {
-                        markAsChanged();
-                        if (input.type === 'color') {
-                            // Update the text input when color picker changes
-                            const textInput = input.parentElement.querySelector('input[data-type="color-text"]');
-                            textInput.value = input.value;
-                        }
+                if (textContainer) {
+                    textContainer.querySelectorAll('input[data-type="text"]').forEach(input => {
+                        input.addEventListener('input', () => markAsChanged());
                     });
-                });
+                }
+                
+                if (colorContainer) {
+                    colorContainer.querySelectorAll('input[data-type="color"], input[data-type="color-text"]').forEach(input => {
+                        input.addEventListener('input', () => {
+                            markAsChanged();
+                            if (input.type === 'color') {
+                                // Update the text input when color picker changes
+                                const textInput = input.parentElement.querySelector('input[data-type="color-text"]');
+                                textInput.value = input.value;
+                            }
+                        });
+                    });
+                }
                 
             } catch (error) {
-                showToast('Failed to load site content', 'error');
                 console.error('Error loading site content:', error);
+                
+                if (error.message.includes('404')) {
+                    showToast('Site not found. It may have been deleted.', 'error');
+                } else if (error.message.includes('Failed to fetch')) {
+                    showToast('Network error. Please check your connection.', 'error');
+                } else {
+                    showToast(`Failed to load site content: ${error.message}`, 'error');
+                }
+                
+                // Reset UI state on error
+                const textContainer = document.getElementById('textElements');
+                const colorContainer = document.getElementById('colorElements');
+                
+                if (textContainer) {
+                    textContainer.innerHTML = '<div class="loading">Failed to load content</div>';
+                }
+                if (colorContainer) {
+                    colorContainer.innerHTML = '<div class="loading">Failed to load content</div>';
+                }
             }
         }
 
@@ -905,11 +1927,15 @@
                     // If the deleted site was the current site, reset the UI
                     if (siteToDelete === currentSiteId) {
                         currentSiteId = null;
+                        localStorage.removeItem('selectedSiteId');
                         document.getElementById('previewFrame').src = 'about:blank';
                         document.getElementById('noSiteSelected').style.display = 'block';
                         document.getElementById('editingContent').style.display = 'none';
                         document.getElementById('saveAllBtn').disabled = true;
                         document.getElementById('deployBtn').disabled = true;
+                    } else if (siteToDelete === localStorage.getItem('selectedSiteId')) {
+                        // Clear localStorage if the deleted site was the saved one
+                        localStorage.removeItem('selectedSiteId');
                     }
                     
                     // Reload the sites list
