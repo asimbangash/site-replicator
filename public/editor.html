@@ -584,37 +584,18 @@
                                     </div>
                                 </div>
 
-                                <!-- HTML Content Editor -->
-                                <div id="htmlContentEditor" class="editing-group" style="margin-bottom: 1.5rem;">
-                                    <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">🔧 HTML Content</label>
-                                    <div style="display: flex; gap: 0.5rem;">
-                                        <textarea id="elementHtmlEditor" class="form-input" rows="4" style="resize: vertical; font-family: 'Courier New', monospace;"></textarea>
-                                        <button id="updateElementHtml" class="btn btn-success">Update</button>
-                                    </div>
-                                </div>
 
-                                <!-- CSS Style Editor -->
-                                <div id="cssStyleEditor" class="editing-group" style="margin-bottom: 1.5rem;">
-                                    <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">🎨 CSS Styles</label>
-                                    <div style="display: flex; gap: 0.5rem;">
-                                        <textarea id="elementCssEditor" class="form-input" rows="3" style="resize: vertical; font-family: 'Courier New', monospace;" placeholder="color: red; background: blue; etc..."></textarea>
-                                        <button id="updateElementCss" class="btn btn-success">Update</button>
-                                    </div>
-                                </div>
-
-                                <!-- Quick Color Controls -->
-                                <div id="colorControls" class="editing-group">
+                                <!-- Quick Color Controls - Only shown for elements with text content -->
+                                <div id="colorControls" class="editing-group" style="display: none;">
                                     <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">🎨 Quick Colors</label>
                                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
                                         <div style="display: flex; gap: 0.5rem; align-items: center;">
-                                            <label style="font-size: 0.9rem;">Text:</label>
                                             <input type="color" id="textColorPicker" class="color-input">
-                                            <button id="applyTextColor" class="btn btn-primary btn-sm">Apply</button>
+                                            <button id="applyTextColor" class="btn btn-primary btn-sm">Colour</button>
                                         </div>
                                         <div style="display: flex; gap: 0.5rem; align-items: center;">
-                                            <label style="font-size: 0.9rem;">Background:</label>
                                             <input type="color" id="bgColorPicker" class="color-input">
-                                            <button id="applyBgColor" class="btn btn-primary btn-sm">Apply</button>
+                                            <button id="applyBgColor" class="btn btn-primary btn-sm">Background</button>
                                         </div>
                                     </div>
                                 </div>
@@ -622,32 +603,7 @@
                             </div>
                         </div>
 
-                        <!-- Fallback: Browse All Elements -->
-                        <div id="browseAllElements">
-                            <div class="section">
-                                <h3>📋 Browse All Elements</h3>
-                                <p style="color: #666; font-size: 0.9rem; margin-bottom: 1rem;">
-                                    Or browse and edit all text elements without selection
-                                </p>
-                            <div class="search-container" style="margin-bottom: 12px; position: relative;">
-                                <input type="text" id="textSearchInput" class="form-input" placeholder="Search text content..." style="width: 100%; padding-right: 30px;">
-                                <button id="clearSearchBtn" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #666; cursor: pointer; display: none;">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                        <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
-                                    </svg>
-                                </button>
                             </div>
-                            <div class="element-list" id="textElements">
-                                <div class="loading">Loading text elements...</div>
-                        </div>
-
-                            <h3>🎨 Colors</h3>
-                            <div class="element-list" id="colorElements">
-                                <div class="loading">Loading color elements...</div>
-                            </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -672,8 +628,6 @@
 
     <script>
         let currentSiteId = null;
-        let textChanges = {};
-        let colorChanges = {};
         let selectionMode = false;
         let selectedElement = null;
         let elementSelector = null;
@@ -699,8 +653,6 @@
             
             // Element editing event listeners
             document.getElementById('updateElementText').addEventListener('click', updateSelectedElementText);
-            document.getElementById('updateElementHtml').addEventListener('click', updateSelectedElementHtml);
-            document.getElementById('updateElementCss').addEventListener('click', updateSelectedElementCss);
             document.getElementById('applyTextColor').addEventListener('click', applyTextColor);
             document.getElementById('applyBgColor').addEventListener('click', applyBgColor);
             
@@ -870,9 +822,12 @@
                             }
                             
                             if (id) return '#' + id;
-                            if (className && className.trim()) {
-                                return tagName + '.' + className.trim().split(' ').join('.');
-                            }
+                            
+                            // Skip class-based selectors for complex utility classes - they cause issues
+                            // Instead, always use nth-child for more reliable targeting
+                            // if (className && className.trim()) {
+                            //     return tagName + '.' + className.trim().split(' ').join('.');
+                            // }
                             
                             // Generate nth-child selector with better context
                             const parent = element.parentElement;
@@ -998,7 +953,6 @@
             
             // Hide editor interface
             document.getElementById('selectedElementEditor').style.display = 'none';
-            document.getElementById('browseAllElements').style.display = 'block';
             
             // Clear selection in iframe
             const iframe = document.getElementById('previewFrame');
@@ -1014,10 +968,8 @@
         
         function showElementEditor(elementData) {
             const editor = document.getElementById('selectedElementEditor');
-            const browseAll = document.getElementById('browseAllElements');
             
             editor.style.display = 'block';
-            browseAll.style.display = 'none';
             
             // Populate element info
             document.getElementById('elementTag').textContent = elementData.tagName;
@@ -1027,22 +979,21 @@
             // Check if this is an image element
             const isImage = elementData.tagName.toLowerCase() === 'img';
             
+            // Check if element has text content (trim to remove whitespace)
+            const hasTextContent = elementData.textContent && elementData.textContent.trim().length > 0;
+            
             // Show/hide appropriate controls based on element type
             const imageControls = document.getElementById('imageControls');
             const textContentEditor = document.getElementById('textContentEditor');
-            const htmlContentEditor = document.getElementById('htmlContentEditor');
-            const cssStyleEditor = document.getElementById('cssStyleEditor');
             const colorControls = document.getElementById('colorControls');
             
             if (isImage) {
-                // Show image controls, hide text/HTML editors
+                // Show image controls, hide text editors
                 imageControls.style.display = 'block';
                 textContentEditor.style.display = 'none';
-                htmlContentEditor.style.display = 'none';
                 
-                // Keep CSS and color controls for styling
-                cssStyleEditor.style.display = 'block';
-                colorControls.style.display = 'block';
+                // Hide color controls for images
+                colorControls.style.display = 'none';
                 
                 // Update element content to show image info
                 const imgSrc = elementData.innerHTML.match(/src="([^"]*)"/) || ['', 'No source'];
@@ -1052,15 +1003,13 @@
                 // Show regular controls, hide image controls
                 imageControls.style.display = 'none';
                 textContentEditor.style.display = 'block';
-                htmlContentEditor.style.display = 'block';
-                cssStyleEditor.style.display = 'block';
-                colorControls.style.display = 'block';
+                
+                // Only show Quick Colors section if element has text content
+                colorControls.style.display = hasTextContent ? 'block' : 'none';
             }
             
             // Populate editors
             document.getElementById('elementTextEditor').value = elementData.textContent;
-            document.getElementById('elementHtmlEditor').value = elementData.innerHTML;
-            document.getElementById('elementCssEditor').value = elementData.style;
             
             // Extract colors from style attribute if available
             const style = elementData.style || '';
@@ -1086,22 +1035,11 @@
             // Generate a unique selector for the element (consistent with iframe version)
             const tagName = element.tagName.toLowerCase();
             const id = element.id;
-            let className = element.className;
-            
-            // Filter out temporary selection classes
-            if (className && typeof className === 'string') {
-                className = className
-                    .split(' ')
-                    .filter(cls => cls && cls.trim() &&
-                           cls !== 'element-hover-selection' && 
-                           cls !== 'element-selected-selection')
-                    .join(' ');
-            }
             
             if (id) return `#${id}`;
-            if (className && className.trim()) {
-                return `${tagName}.${className.trim().split(' ').join('.')}`;
-            }
+            
+            // Skip class-based selectors for complex utility classes - they cause issues
+            // Always use nth-child for more reliable targeting
             
             // Generate nth-child selector
             const parent = element.parentElement;
@@ -1171,69 +1109,6 @@
             }
         }
         
-        async function updateSelectedElementHtml() {
-            if (!selectedElement || !currentSiteId || !elementSelector) return;
-            
-            const newHtml = document.getElementById('elementHtmlEditor').value;
-            
-            try {
-                const response = await fetch(`/api/sites/${currentSiteId}/element`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        selector: elementSelector,
-                        elementId: selectedElement.elementId,
-                        action: 'updateHtml',
-                        value: newHtml,
-                        position: selectedElement.position
-                    })
-                });
-                
-                const result = await response.json();
-                if (result.success) {
-                    selectedElement.innerHTML = newHtml;
-                    updateElementInIframe(elementSelector, 'innerHTML', newHtml);
-                    showToast('HTML updated successfully!');
-                    
-                } else {
-                    throw new Error(result.error);
-                }
-            } catch (error) {
-                showToast('Failed to update HTML: ' + error.message, 'error');
-            }
-        }
-        
-        async function updateSelectedElementCss() {
-            if (!selectedElement || !currentSiteId || !elementSelector) return;
-            
-            const newCss = document.getElementById('elementCssEditor').value;
-            
-            try {
-                const response = await fetch(`/api/sites/${currentSiteId}/element`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        selector: elementSelector,
-                        elementId: selectedElement.elementId,
-                        action: 'updateCss',
-                        value: newCss,
-                        position: selectedElement.position
-                    })
-                });
-                
-                const result = await response.json();
-                if (result.success) {
-                    selectedElement.style = newCss;
-                    updateElementInIframe(elementSelector, 'style', newCss);
-                    showToast('CSS updated successfully!');
-                    
-                } else {
-                    throw new Error(result.error);
-                }
-            } catch (error) {
-                showToast('Failed to update CSS: ' + error.message, 'error');
-            }
-        }
         
         async function applyTextColor() {
             if (!selectedElement || !currentSiteId || !elementSelector) return;
@@ -1258,7 +1133,6 @@
                 const result = await response.json();
                 if (result.success) {
                     selectedElement.style = newStyle;
-                    document.getElementById('elementCssEditor').value = newStyle;
                     updateElementInIframe(elementSelector, 'style', newStyle);
                     showToast('Text color applied!');
                     
@@ -1293,7 +1167,6 @@
                 const result = await response.json();
                 if (result.success) {
                     selectedElement.style = newStyle;
-                    document.getElementById('elementCssEditor').value = newStyle;
                     updateElementInIframe(elementSelector, 'style', newStyle);
                     showToast('Background color applied!');
                     
@@ -1562,15 +1435,12 @@
             document.querySelector(`[data-site-id="${siteId}"]`).classList.add('active');
             
             currentSiteId = siteId;
-            textChanges = {};
-            colorChanges = {};
-            updateUnsavedIndicator();
             
             // Save selected site to localStorage
             localStorage.setItem('selectedSiteId', siteId);
             
             // Enable controls
-            document.getElementById('saveAllBtn').disabled = false;
+            document.getElementById('saveAllBtn').disabled = true;
             // Preview button has been commented out
             // document.getElementById('previewBtn').disabled = false;
             document.getElementById('deployBtn').disabled = false;
@@ -1618,81 +1488,7 @@
                     throw new Error('Invalid content structure received from server');
                 }
                 
-                // Store text elements globally for search functionality
-                window.allTextElements = content.textElements;
-                
-                // Load text elements
-                const textContainer = document.getElementById('textElements');
-                if (!textContainer) {
-                    console.error('textElements container not found in DOM');
-                    throw new Error('Text elements container not found. The page may not be fully loaded.');
-                }
-                
-                textContainer.innerHTML = content.textElements.map(element => `
-                    <div class="element-item" data-search-text="${element.text.toLowerCase()}">
-                        <div class="element-tag">${element.tag}</div>
-                        <div class="element-text">${element.text}</div>
-                        <div class="input-group">
-                            <input type="text" class="form-input" value="${element.text}" 
-                                   data-element-id="${element.id}" data-type="text">
-                            <button class="btn btn-primary btn-sm" onclick="updateText('${element.id}', this)">Update</button>
-                        </div>
-                    </div>
-                `).join('');
-                
-                // Set up search functionality
-                setupTextSearch();
-                
-                // Load color elements
-                const colorContainer = document.getElementById('colorElements');
-                if (!colorContainer) {
-                    console.error('colorElements container not found in DOM');
-                    throw new Error('Color elements container not found. The page may not be fully loaded.');
-                }
-                
-                colorContainer.innerHTML = content.colorElements.map(element => {
-                    const displayText = element.text || element.value;
-                    const typeLabel = element.type === 'text' ? '📝 Text Color' : 
-                                     element.type === 'background' ? '🎨 Background' : 
-                                     element.type === 'class' ? '🏷️ CSS Class' : 
-                                     '🎯 ' + element.property;
-                    
-                    return `
-                        <div class="element-item">
-                            <div class="element-tag">${element.tag} • ${typeLabel}</div>
-                            <div class="element-text">${displayText}</div>
-                            <div class="input-group">
-                                <input type="color" class="color-input" value="${normalizeColor(element.value)}" 
-                                       data-element-id="${element.id}" data-property="${element.property}" 
-                                       data-type="color" data-color-type="${element.type || 'inline'}">
-                                <input type="text" class="form-input" value="${element.value}" 
-                                       data-element-id="${element.id}" data-property="${element.property}" 
-                                       data-type="color-text" data-color-type="${element.type || 'inline'}">
-                                <button class="btn btn-primary btn-sm" onclick="updateColor('${element.id}', '${element.property}', '${element.type || 'inline'}', this)">Update</button>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-                
-                // Add change listeners
-                if (textContainer) {
-                    textContainer.querySelectorAll('input[data-type="text"]').forEach(input => {
-                        input.addEventListener('input', () => markAsChanged());
-                    });
-                }
-                
-                if (colorContainer) {
-                    colorContainer.querySelectorAll('input[data-type="color"], input[data-type="color-text"]').forEach(input => {
-                        input.addEventListener('input', () => {
-                            markAsChanged();
-                            if (input.type === 'color') {
-                                // Update the text input when color picker changes
-                                const textInput = input.parentElement.querySelector('input[data-type="color-text"]');
-                                textInput.value = input.value;
-                            }
-                        });
-                    });
-                }
+                // Content loading removed - only selected element editing is now available
                 
                 // Restore font selector after loading content
                 setTimeout(() => {
@@ -1727,110 +1523,19 @@
                     showToast(`Failed to load site content: ${error.message}`, 'error');
                 }
                 
-                // Reset UI state on error
-                const textContainer = document.getElementById('textElements');
-                const colorContainer = document.getElementById('colorElements');
-                
-                if (textContainer) {
-                    textContainer.innerHTML = '<div class="loading">Failed to load content</div>';
-                }
-                if (colorContainer) {
-                    colorContainer.innerHTML = '<div class="loading">Failed to load content</div>';
-                }
+                // Content loading error - only selected element editing is available
             }
         }
 
-        function updateText(elementId, button) {
-            const input = button.parentElement.querySelector('input');
-            const newText = input.value.trim();
-            
-            if (!newText) return;
-            
-            textChanges[elementId] = { elementId, newText };
-            markAsChanged();
-            showToast('Text change queued for saving');
-        }
-
-        function updateColor(elementId, property, type, button) {
-            const colorInput = button.parentElement.querySelector('input[data-type="color"]');
-            const textInput = button.parentElement.querySelector('input[data-type="color-text"]');
-            const newColor = textInput.value.trim() || colorInput.value;
-            
-            if (!newColor) return;
-            
-            const changeKey = `${elementId}_${property}`;
-            colorChanges[changeKey] = { elementId, property, newColor, type };
-            markAsChanged();
-            showToast(`${type === 'text' ? 'Text' : type === 'background' ? 'Background' : 'Color'} change queued for saving`);
-        }
 
         async function saveAllChanges() {
-            if (!currentSiteId) return;
-            
-            const textChangesArray = Object.values(textChanges);
-            const colorChangesArray = Object.values(colorChanges);
-            
-            if (textChangesArray.length === 0 && colorChangesArray.length === 0) {
-                showToast('No changes to save', 'error');
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/api/sites/${currentSiteId}/save`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        textChanges: textChangesArray,
-                        colorChanges: colorChangesArray
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    textChanges = {};
-                    colorChanges = {};
-                    updateUnsavedIndicator();
-                    
-                    // Refresh preview with loading indicator
-                    const previewFrame = document.getElementById('previewFrame');
-                    const previewLoading = document.getElementById('previewLoading');
-                    
-                    previewLoading.style.display = 'block';
-                    previewFrame.style.opacity = '0.5';
-                    
-                    previewFrame.onload = () => {
-                        previewLoading.style.display = 'none';
-                        previewFrame.style.opacity = '1';
-                    };
-                    
-                    previewFrame.src = `/preview/${currentSiteId}?t=${Date.now()}`;
-                    
-                    showToast(`Saved ${result.changesApplied.textChanges + result.changesApplied.colorChanges} changes successfully`);
-                } else {
-                    throw new Error(result.error);
-                }
-                
-            } catch (error) {
-                showToast('Failed to save changes: ' + error.message, 'error');
-                console.error('Error saving changes:', error);
-            }
+            showToast('Use individual element editing instead. Changes are saved automatically.', 'error');
         }
 
         function openPreview() {
             if (currentSiteId) {
                 window.open(`/preview/${currentSiteId}`, '_blank');
             }
-        }
-
-        function markAsChanged() {
-            updateUnsavedIndicator();
-        }
-
-        function updateUnsavedIndicator() {
-            const hasChanges = Object.keys(textChanges).length > 0 || Object.keys(colorChanges).length > 0;
-            const indicator = document.getElementById('unsavedChanges');
-            indicator.style.display = hasChanges ? 'inline' : 'none';
         }
 
         function normalizeColor(color) {
@@ -1859,73 +1564,6 @@
             }, 3000);
         }
         
-        // Text search functionality
-        function setupTextSearch() {
-            const searchInput = document.getElementById('textSearchInput');
-            const clearBtn = document.getElementById('clearSearchBtn');
-            if (!searchInput || !clearBtn) return;
-            
-            // Function to filter elements
-            const filterElements = () => {
-                const searchTerm = searchInput.value.toLowerCase().trim();
-                const textElements = document.querySelectorAll('#textElements .element-item');
-                
-                // Show/hide clear button based on search input
-                clearBtn.style.display = searchTerm ? 'block' : 'none';
-                
-                if (!searchTerm) {
-                    // If search is empty, show all elements
-                    textElements.forEach(element => {
-                        element.style.display = 'block';
-                    });
-                    return;
-                }
-                
-                // Filter elements based on search term
-                let matchCount = 0;
-                textElements.forEach(element => {
-                    const text = element.getAttribute('data-search-text');
-                    if (text && text.includes(searchTerm)) {
-                        element.style.display = 'block';
-                        matchCount++;
-                    } else {
-                        element.style.display = 'none';
-                    }
-                });
-                
-                // Show message if no results found
-                const noResultsEl = document.getElementById('noSearchResults');
-                if (matchCount === 0) {
-                    if (!noResultsEl) {
-                        const message = document.createElement('div');
-                        message.id = 'noSearchResults';
-                        message.className = 'loading';
-                        message.textContent = `No results found for "${searchTerm}"`;
-                        document.getElementById('textElements').appendChild(message);
-                    }
-                } else if (noResultsEl) {
-                    noResultsEl.remove();
-                }
-            };
-            
-            // Input event for real-time filtering
-            searchInput.addEventListener('input', filterElements);
-            
-            // Clear button click event
-            clearBtn.addEventListener('click', () => {
-                searchInput.value = '';
-                filterElements();
-                searchInput.focus();
-            });
-            
-            // Escape key to clear search
-            searchInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') {
-                    this.value = '';
-                    filterElements();
-                }
-            });
-        }
         
         // Delete site functionality
         let siteToDelete = null;
