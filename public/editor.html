@@ -861,42 +861,64 @@
                                     .join(' ');
                             }
                             
-                            if (id) return '#' + id;
+                            // Validate ID before using it as a CSS selector
+                            if (id && /^[a-zA-Z][a-zA-Z0-9_-]*$/.test(id)) {
+                                return '#' + id;
+                            }
                             
-                            // Skip class-based selectors for complex utility classes - they cause issues
-                            // Instead, always use nth-child for more reliable targeting
-                            // if (className && className.trim()) {
-                            //     return tagName + '.' + className.trim().split(' ').join('.');
-                            // }
+                            // Try to use class-based selector if available and not too complex
+                            if (className && className.trim() && !className.includes('elementor') && !className.includes('wp-') && className.split(' ').length <= 3) {
+                                const cleanClassName = className.trim().split(' ').join('.');
+                                return tagName + '.' + cleanClassName;
+                            }
                             
-                            // Generate nth-child selector with better context
+                            // For images, try to use src attribute for uniqueness
+                            if (tagName === 'img') {
+                                const src = element.getAttribute('src');
+                                if (src) {
+                                    // Extract filename from src for more specific targeting
+                                    const filename = src.split('/').pop().split('?')[0];
+                                    if (filename && filename.length > 0) {
+                                        // Use attribute selector with filename
+                                        return 'img[src*="' + filename + '"]';
+                                    }
+                                }
+                            }
+                            
+                            // Generate hierarchical selector for better specificity
                             const parent = element.parentElement;
                             if (parent) {
                                 const siblings = Array.from(parent.children);
-                                const index = siblings.indexOf(element) + 1;
-                                const selector = tagName + ':nth-child(' + index + ')';
+                                const sameTagSiblings = siblings.filter(sibling => sibling.tagName.toLowerCase() === tagName);
+                                const index = sameTagSiblings.indexOf(element) + 1;
                                 
-                                // For common list/container patterns, include parent context
+                                // Create more specific selector with parent context
                                 const parentTag = parent.tagName.toLowerCase();
-                                if ((parentTag === 'ul' || parentTag === 'ol') && tagName === 'li') {
-                                    const parentId = parent.id;
-                                    const parentClass = parent.className;
-                                    
-                                    if (parentId) {
-                                        return '#' + parentId + ' ' + selector;
-                                    } else if (parentClass && typeof parentClass === 'string') {
-                                        const cleanParentClass = parentClass
-                                            .split(' ')
-                                            .filter(cls => cls && cls.trim())
-                                            .join('.');
-                                        if (cleanParentClass) {
-                                            return parentTag + '.' + cleanParentClass + ' ' + selector;
-                                        }
+                                const parentId = parent.id;
+                                const parentClass = parent.className;
+                                
+                                let parentSelector = parentTag;
+                                
+                                // Add parent ID if available and valid
+                                if (parentId && /^[a-zA-Z][a-zA-Z0-9_-]*$/.test(parentId)) {
+                                    parentSelector = '#' + parentId;
+                                } else if (parentClass && typeof parentClass === 'string') {
+                                    const cleanParentClass = parentClass
+                                        .split(' ')
+                                        .filter(cls => cls && cls.trim() && !cls.includes('elementor') && !cls.includes('wp-'))
+                                        .slice(0, 2) // Limit to first 2 classes
+                                        .join('.');
+                                    if (cleanParentClass) {
+                                        parentSelector = parentTag + '.' + cleanParentClass;
                                     }
-                                    return parentTag + ' ' + selector;
                                 }
                                 
-                                return selector;
+                                // Use nth-of-type instead of nth-child for better targeting
+                                if (sameTagSiblings.length > 1) {
+                                    return parentSelector + ' ' + tagName + ':nth-of-type(' + index + ')';
+                                } else {
+                                    return parentSelector + ' ' + tagName;
+                                }
                             }
                             
                             return tagName;
