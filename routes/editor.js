@@ -1103,6 +1103,22 @@ router.post(
       // Update the src attribute
       element.attr("src", newImagePath);
 
+      // Clear lazy loading attributes that might override our image
+      element.removeAttr("data-src");
+      element.removeAttr("data-srcset");
+      element.removeAttr("nitro-lazy-src");
+      element.removeAttr("nitro-lazy-srcset");
+      element.removeAttr("srcset");
+
+      // Remove lazy loading classes
+      element.removeClass("lazyload");
+      element.removeClass("lazyloaded");
+      element.removeClass("nitro-lazy");
+      element.removeClass("lazyautosizes");
+
+      console.log("Updated src:", element.attr("src"));
+      console.log("Lazy loading attributes cleared");
+
       // Create backup
       const backupPath = path.join(
         CLONED_SITES_DIR,
