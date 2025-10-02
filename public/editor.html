@@ -39,7 +39,7 @@
             margin: 0 auto;
             padding: 1rem;
             display: grid;
-            grid-template-columns: 300px 1fr;
+            grid-template-columns: 200px 1fr;
             gap: 1rem;
             height: calc(100vh - 100px);
         }
@@ -84,15 +84,16 @@
             backdrop-filter: blur(10px);
             border-radius: 12px;
             box-shadow: 0 4px 25px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
+            overflow: visible;
             display: grid;
-            grid-template-columns: 2fr 1fr;
+            grid-template-columns: 3fr 1fr;
+            position: relative;
         }
 
         .preview-panel {
             background: #f8f9fa;
             border-right: 1px solid #e9ecef;
-            overflow: auto;
+            /* overflow: auto; */
         }
 
         .preview-iframe {
@@ -121,6 +122,60 @@
             padding: 1rem;
             overflow-y: auto;
             background: white;
+            transition: transform 0.3s ease;
+            position: relative;
+        }
+
+        .editing-panel.hidden {
+            display: none;
+        }
+
+        .sidebar-toggle {
+            position: absolute;
+            top: 110px;
+            right: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            /* z-index: 1000; */
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Responsive positioning for different screen sizes */
+        @media (min-width: 1920px) {
+            .sidebar-toggle {
+                right: calc((100vw - 1800px) / 2 + 15px);
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .sidebar-toggle {
+                right: 10px;
+                top: 100px;
+            }
+        }
+
+        .sidebar-toggle:hover {
+            background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .sidebar-toggle:active {
+            transform: translateY(0);
+        }
+
+        .editor-area.sidebar-hidden {
+            grid-template-columns: 1fr;
         }
 
         .section {
@@ -279,6 +334,7 @@
         }
 
         .form-input {
+            width: 100%;
             flex: 1;
             padding: 0.4rem 0.6rem;
             border: 1px solid #e2e8f0;
@@ -489,7 +545,7 @@
                     <iframe id="previewFrame" class="preview-iframe" src="about:blank"></iframe>
                 </div>
 
-                <div class="editing-panel">
+                <div class="editing-panel" id="editingPanel">
                     <div id="noSiteSelected" class="loading">
                         Select a site from the sidebar to start editing
                     </div>
@@ -497,7 +553,7 @@
                     <div id="editingContent" style="display: none;">
                         <!-- Refresh Button -->
                         <div class="section">
-                            <div style="text-align: center; margin-bottom: 1rem;">
+                            <div style="text-align: center; margin-bottom: 1rem; display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
                                 <button id="refreshBtn" class="btn btn-secondary" title="Refresh Editor">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                                         <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
@@ -505,15 +561,16 @@
                                     </svg>
                                     Refresh
                                 </button>
+                            
                             </div>
                         </div>
 
                         <!-- Website Font Controls -->
                         <div class="section">
                             <h3>🔤 Website Font</h3>
-                            <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1rem;">
+                            <!-- <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1rem;"> -->
                                 <select id="fontSelector" class="form-input" style="flex: 1;">
-                                    <option value="">Select Font</option>
+                                    <option value="" style="width: 100%; font-size: 0.9rem;">Select Font</option>
                                     <option value="Arial, sans-serif">Arial</option>
                                     <option value="Helvetica, sans-serif">Helvetica</option>
                                     <option value="'Times New Roman', serif">Times New Roman</option>
@@ -530,15 +587,29 @@
                                     <option value="'Book Antiqua', serif">Book Antiqua</option>
                                     <option value="'Century Gothic', sans-serif">Century Gothic</option>
                                 </select>
-                                <button id="applyFont" class="btn btn-primary">Apply Font</button>
+                                <button id="applyFont" class="btn btn-primary" style="width: 100%; font-size: 0.9rem; margin-top: 0.5rem;">Apply Font</button>
+                            <!-- </div> -->
+                        </div>
+
+                        <!-- Highlight Images Section -->
+                        <div class="section">
+                            <h3>🖼️ Highlight Images</h3>
+                            <div style="margin-bottom: 1rem;">
+                                <button id="highlightImagesBtn" class="btn btn-primary" style="width: 100%; font-size: 0.9rem;" title="Highlight All Images">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                        <path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+                                        <path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/>
+                                    </svg>
+                                    Show All Images
+                                </button>
                             </div>
                         </div>
 
                         <!-- Selection Mode Toggle -->
                         <div class="section">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                                <h3>🎯 Element Selection</h3>
-                                <button id="toggleSelectionMode" class="btn btn-primary">
+                            <h3>🎯 Element Selection</h3>
+                            <div style="margin-bottom: 1rem;">
+                                <button id="toggleSelectionMode" class="btn btn-primary" style="width: 100%; font-size: 0.9rem;">
                                     Enable Click-to-Select
                                 </button>
                             </div>
@@ -552,10 +623,10 @@
                         <!-- Selected Element Editor -->
                         <div id="selectedElementEditor" style="display: none;">
                             <div class="section">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                <!-- <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;"> -->
                                     <h3>✏️ Selected Element</h3>
-                                    <button id="clearSelection" class="btn btn-secondary btn-sm">Clear Selection</button>
-                                </div>
+                                    <button id="clearSelection" class="btn btn-secondary btn-sm" style="width: 100%; font-size: 0.9rem;">Clear Selection</button>
+                                <!-- </div> -->
                                 
                                 <div id="elementInfo" style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
                                     <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
@@ -568,36 +639,36 @@
                                 <!-- Image-specific Controls -->
                                 <div id="imageControls" class="editing-group" style="margin-bottom: 1.5rem; display: none;">
                                     <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">🖼️ Image Actions</label>
-                                    <div style="display: flex; gap: 0.5rem;">
-                                        <button id="deleteImage" class="btn btn-danger">🗑️ Delete Image</button>
-                                        <button id="replaceImage" class="btn btn-primary">🔄 Replace Image</button>
-                                    </div>
+                                    <!-- <div style="display: flex; gap: 0.5rem;"> -->
+                                        <button id="deleteImage" class="btn btn-danger" style="width: 100%; font-size: 0.9rem;">🗑️ Delete Image</button>
+                                        <button id="replaceImage" class="btn btn-primary" style="width: 100%; font-size: 0.9rem; margin-top: 0.5rem;">🔄 Replace Image</button>
+                                    <!-- </div> -->
                                     <input type="file" id="imageFileInput" accept="image/*" style="display: none;">
                                 </div>
 
                                 <!-- Text Content Editor -->
                                 <div id="textContentEditor" class="editing-group" style="margin-bottom: 1.5rem;">
                                     <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">📝 Text Content</label>
-                                    <div style="display: flex; gap: 0.5rem;">
-                                        <textarea id="elementTextEditor" class="form-input" rows="3" style="resize: vertical;"></textarea>
-                                        <button id="updateElementText" class="btn btn-success">Update</button>
-                                    </div>
+                                    <!-- <div style="display: flex; gap: 0.5rem;"> -->
+                                        <textarea id="elementTextEditor" class="form-input" rows="3" style="resize: vertical; width: 100%;"></textarea>
+                                        <button id="updateElementText" class="btn btn-success" style="width: 100%; font-size: 0.9rem;">Update</button>
+                                    <!-- </div> -->
                                 </div>
 
 
                                 <!-- Quick Color Controls - Only shown for elements with text content -->
                                 <div id="colorControls" class="editing-group" style="display: none;">
                                     <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">🎨 Quick Colors</label>
-                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                                    <!-- <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;"> -->
                                         <div style="display: flex; gap: 0.5rem; align-items: center;">
                                             <input type="color" id="textColorPicker" class="color-input">
-                                            <button id="applyTextColor" class="btn btn-primary btn-sm">Apply Colour</button>
+                                            <button id="applyTextColor" class="btn btn-primary btn-sm" style="width: 100%; font-size: 0.9rem;">Apply Colour</button>
                                         </div>
                                         <div style="display: flex; gap: 0.5rem; align-items: center;">
                                             <input type="color" id="bgColorPicker" class="color-input">
-                                            <button id="applyBgColor" class="btn btn-primary btn-sm">Apply Background</button>
+                                            <button id="applyBgColor" class="btn btn-primary btn-sm" style="width: 100%; font-size: 0.9rem;">Apply Background</button>
                                         </div>
-                                    </div>
+                                    <!-- </div> -->
                                 </div>
 
                             </div>
@@ -608,6 +679,13 @@
             </div>
         </div>
     </div>
+
+    <!-- Sidebar Toggle Button - Always Visible -->
+    <button class="sidebar-toggle" id="sidebarToggle" title="Hide Sidebar">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+        </svg>
+    </button>
 
     <div id="toast" class="toast"></div>
     
@@ -642,6 +720,8 @@
             document.getElementById('saveAllBtn').addEventListener('click', saveAllChanges);
             document.getElementById('deployBtn').addEventListener('click', deploySite);
             document.getElementById('refreshBtn').addEventListener('click', refreshEditor);
+            document.getElementById('highlightImagesBtn').addEventListener('click', highlightAllImages);
+            document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
             
             // Delete modal event listeners
             document.getElementById('cancelDeleteBtn').addEventListener('click', hideDeleteModal);
@@ -674,6 +754,131 @@
         
         function refreshEditor() {
             window.location.reload();
+        }
+
+        function toggleSidebar() {
+            const editingPanel = document.getElementById('editingPanel');
+            const editorArea = document.querySelector('.editor-area');
+            const toggleButton = document.getElementById('sidebarToggle');
+            const toggleIcon = toggleButton.querySelector('svg path');
+            
+            if (editingPanel.classList.contains('hidden')) {
+                // Show sidebar (arrow points left - sidebar comes from right)
+                editingPanel.classList.remove('hidden');
+                editorArea.classList.remove('sidebar-hidden');
+                toggleIcon.setAttribute('d', 'M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z');
+                toggleButton.title = 'Hide Sidebar';
+            } else {
+                // Hide sidebar (arrow points right - sidebar goes to right)
+                editingPanel.classList.add('hidden');
+                editorArea.classList.add('sidebar-hidden');
+                toggleIcon.setAttribute('d', 'M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z');
+                toggleButton.title = 'Show Sidebar';
+            }
+        }
+
+        let imagesHighlighted = false;
+
+        function highlightAllImages() {
+            if (!currentSiteId) {
+                showToast('Please select a site first', 'error');
+                return;
+            }
+
+            const iframe = document.getElementById('previewFrame');
+            const button = document.getElementById('highlightImagesBtn');
+            
+            try {
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                const images = iframeDoc.querySelectorAll('img');
+                
+                if (!imagesHighlighted) {
+                    // Add highlight borders to all images
+                    images.forEach((img, index) => {
+                        img.style.border = '3px dashed #667eea';
+                        img.style.boxShadow = '0 0 10px rgba(102, 126, 234, 0.5)';
+                        img.style.transition = 'all 0.3s ease';
+                        
+                        // Add a small number indicator
+                        const indicator = iframeDoc.createElement('div');
+                        indicator.style.cssText = `
+                            position: absolute;
+                            top: -10px;
+                            left: -10px;
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            color: white;
+                            border-radius: 50%;
+                            width: 24px;
+                            height: 24px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 12px;
+                            font-weight: bold;
+                            z-index: 1000;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                        `;
+                        indicator.textContent = index + 1;
+                        indicator.className = 'image-highlight-indicator';
+                        
+                        // Make parent relative if needed
+                        const parent = img.parentElement;
+                        if (getComputedStyle(parent).position === 'static') {
+                            parent.style.position = 'relative';
+                            parent.setAttribute('data-position-modified', 'true');
+                        }
+                        
+                        parent.appendChild(indicator);
+                    });
+                    
+                    showToast(`✅ Found ${images.length} images in the site`, 'success');
+                    button.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                            <path d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.061L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05z"/>
+                        </svg>
+                        Hide (${images.length})
+                    `;
+                    button.title = `Hide image highlights (${images.length} images found)`;
+                    imagesHighlighted = true;
+                    
+                } else {
+                    // Remove highlight borders and indicators
+                    images.forEach(img => {
+                        img.style.border = '';
+                        img.style.boxShadow = '';
+                        img.style.transition = '';
+                    });
+                    
+                    // Remove all indicators
+                    const indicators = iframeDoc.querySelectorAll('.image-highlight-indicator');
+                    indicators.forEach(indicator => {
+                        const parent = indicator.parentElement;
+                        indicator.remove();
+                        
+                        // Restore original position if we modified it
+                        if (parent.getAttribute('data-position-modified')) {
+                            parent.style.position = '';
+                            parent.removeAttribute('data-position-modified');
+                        }
+                    });
+                    
+                    button.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+                            <path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/>
+                        </svg>
+                        Highlight Images
+                    `;
+                    button.title = 'Highlight All Images';
+                    showToast('Image highlights removed', 'info');
+                    imagesHighlighted = false;
+                }
+                
+            } catch (error) {
+                console.error('Could not access iframe:', error);
+                showToast('Could not access site content. Try refreshing.', 'error');
+            }
         }
 
         // ================== Element Selection Functions ==================
