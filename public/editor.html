@@ -625,10 +625,11 @@
                             <div class="section">
                                 <!-- <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;"> -->
                                     <h3>✏️ Selected Element</h3>
-                                    <button id="clearSelection" class="btn btn-secondary btn-sm" style="width: 100%; font-size: 0.9rem;">Clear Selection</button>
+                                    <button id="clearSelection" class="btn btn-secondary btn-sm" style="width: 100%; font-size: 0.9rem; margin-bottom: 1rem;">Clear Selection</button>
                                 <!-- </div> -->
                                 
-                                <div id="elementInfo" style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                                <!-- <div id="elementInfo" style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;"> -->
+                                <div id="elementInfo" style="display: none;">
                                     <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
                                         <span id="elementTag" class="element-tag"></span>
                                         <span id="elementSelector" style="font-size: 0.8rem; color: #666;"></span>
@@ -1027,19 +1028,36 @@
                             let targetElement = e.target;
                             let foundImage = findImageInComplexStructure(targetElement);
                             
-                            // If no image found in the clicked element, search parent elements
-                            // This handles cases where you click on padding/margin areas
+                            // Only search parent elements if the clicked element doesn't have meaningful text content
+                            // This prevents text selections from being hijacked by images in parent containers
                             if (!foundImage) {
-                                let currentParent = targetElement.parentElement;
-                                let searchDepth = 0;
+                                const clickedElementText = targetElement.textContent ? targetElement.textContent.trim() : '';
+                                const isTextElement = clickedElementText.length > 10; // Has substantial text content
+                                const isTextTag = ['p', 'span', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'td', 'th'].includes(targetElement.tagName.toLowerCase());
                                 
-                                while (currentParent && searchDepth < 5) { // Search up to 5 levels
-                                    foundImage = findImageInComplexStructure(currentParent);
-                                    if (foundImage) {
-                                        break;
+                                // Only search parents if:
+                                // 1. The clicked element doesn't have substantial text content, AND
+                                // 2. It's not a typical text-containing element, AND
+                                // 3. Limit search to only 2 levels (much more conservative)
+                                if (!isTextElement && (!isTextTag || clickedElementText.length < 5)) {
+                                    let currentParent = targetElement.parentElement;
+                                    let searchDepth = 0;
+                                    
+                                    while (currentParent && searchDepth < 2) { // Reduced from 5 to 2 levels
+                                        // Don't search parents that have substantial text content
+                                        const parentText = currentParent.textContent ? currentParent.textContent.trim() : '';
+                                        const parentHasText = parentText.length > 20;
+                                        
+                                        if (!parentHasText) {
+                                            foundImage = findImageInComplexStructure(currentParent);
+                                            if (foundImage) {
+                                                break;
+                                            }
+                                        }
+                                        
+                                        currentParent = currentParent.parentElement;
+                                        searchDepth++;
                                     }
-                                    currentParent = currentParent.parentElement;
-                                    searchDepth++;
                                 }
                             }
                             
@@ -1125,18 +1143,31 @@
                                 // Try to find an image in the hovered element
                                 let foundImage = findImageForHover(hoverTarget);
                                 
-                                // If no image found, try parent elements
+                                // Only search parent elements if the hovered element doesn't have meaningful text
                                 if (!foundImage) {
-                                    let currentParent = hoverTarget.parentElement;
-                                    let searchDepth = 0;
+                                    const hoveredElementText = hoverTarget.textContent ? hoverTarget.textContent.trim() : '';
+                                    const isTextElement = hoveredElementText.length > 10;
+                                    const isTextTag = ['p', 'span', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'td', 'th'].includes(hoverTarget.tagName.toLowerCase());
                                     
-                                    while (currentParent && searchDepth < 3) { // Less aggressive for hover
-                                        foundImage = findImageForHover(currentParent);
-                                        if (foundImage) {
-                                            break;
+                                    // Only search parents for images if this isn't a text element
+                                    if (!isTextElement && (!isTextTag || hoveredElementText.length < 5)) {
+                                        let currentParent = hoverTarget.parentElement;
+                                        let searchDepth = 0;
+                                        
+                                        while (currentParent && searchDepth < 2) { // Even more conservative for hover
+                                            const parentText = currentParent.textContent ? currentParent.textContent.trim() : '';
+                                            const parentHasText = parentText.length > 20;
+                                            
+                                            if (!parentHasText) {
+                                                foundImage = findImageForHover(currentParent);
+                                                if (foundImage) {
+                                                    break;
+                                                }
+                                            }
+                                            
+                                            currentParent = currentParent.parentElement;
+                                            searchDepth++;
                                         }
-                                        currentParent = currentParent.parentElement;
-                                        searchDepth++;
                                     }
                                 }
                                 
