@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Website Editor Dashboard</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%23667eea' width='100' height='100' rx='20'/%3E%3Cpath fill='%23fff' d='M30 25h25v8H30z'/%3E%3Cpath fill='%23fff' opacity='0.7' d='M30 38h35v5H30zM30 48h30v5H30zM30 58h35v5H30z'/%3E%3Cpath fill='%23fff' d='M45 70h25v8H45z'/%3E%3Cpath fill='%23fff' opacity='0.7' d='M45 53h30v5H45zM45 63h25v5H45z'/%3E%3C/svg%3E">
     <style>
         * {
             margin: 0;
@@ -519,9 +520,6 @@
 
         <div class="main-content">
             <div class="controls">
-                <button class="btn btn-primary" id="saveAllBtn" disabled>
-                    💾 Save All Changes
-                </button>
                 <!-- <button class="btn btn-secondary" id="previewBtn" disabled>
                     👁️ Open Preview
                 </button> -->
@@ -718,7 +716,6 @@
         });
 
         function setupEventListeners() {
-            document.getElementById('saveAllBtn').addEventListener('click', saveAllChanges);
             document.getElementById('deployBtn').addEventListener('click', deploySite);
             document.getElementById('refreshBtn').addEventListener('click', refreshEditor);
             document.getElementById('highlightImagesBtn').addEventListener('click', highlightAllImages);
@@ -1950,8 +1947,6 @@
             // Save selected site to localStorage
             localStorage.setItem('selectedSiteId', siteId);
             
-            // Enable controls
-            document.getElementById('saveAllBtn').disabled = true;
             // Preview button has been commented out
             // document.getElementById('previewBtn').disabled = false;
             document.getElementById('deployBtn').disabled = false;
@@ -2038,11 +2033,6 @@
             }
         }
 
-
-        async function saveAllChanges() {
-            showToast('Use individual element editing instead. Changes are saved automatically.', 'error');
-        }
-
         function openPreview() {
             if (currentSiteId) {
                 window.open(`/preview/${currentSiteId}`, '_blank');
@@ -2108,7 +2098,6 @@
                         document.getElementById('previewFrame').src = 'about:blank';
                         document.getElementById('noSiteSelected').style.display = 'block';
                         document.getElementById('editingContent').style.display = 'none';
-                        document.getElementById('saveAllBtn').disabled = true;
                         document.getElementById('deployBtn').disabled = true;
                     } else if (siteToDelete === localStorage.getItem('selectedSiteId')) {
                         // Clear localStorage if the deleted site was the saved one
