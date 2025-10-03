@@ -974,31 +974,120 @@
                                 selectedElement.classList.remove('element-selected-selection');
                             }
                             
+                            // Advanced image detection for deeply nested structures
+                            function findImageInComplexStructure(startElement) {
+                                // If the clicked element is already an image, use it
+                                if (startElement.tagName.toLowerCase() === 'img') {
+                                    return startElement;
+                                }
+                                
+                                // Search within the clicked element and all its descendants
+                                const allImages = startElement.querySelectorAll('img');
+                                if (allImages.length === 1) {
+                                    // Only one image found, use it
+                                    return allImages[0];
+                                } else if (allImages.length > 1) {
+                                    // Multiple images - find the most relevant one
+                                    // Prioritize images that are not tiny (likely not icons)
+                                    const significantImages = Array.from(allImages).filter(img => {
+                                        const rect = img.getBoundingClientRect();
+                                        return rect.width > 50 && rect.height > 50; // Filter out small icons
+                                    });
+                                    
+                                    if (significantImages.length === 1) {
+                                        return significantImages[0];
+                                    } else if (significantImages.length > 1) {
+                                        // Find closest to click point
+                                        let closestImage = null;
+                                        let minDistance = Infinity;
+                                        
+                                        significantImages.forEach(img => {
+                                            const rect = img.getBoundingClientRect();
+                                            const centerX = rect.left + rect.width / 2;
+                                            const centerY = rect.top + rect.height / 2;
+                                            const distance = Math.sqrt(
+                                                Math.pow(e.clientX - centerX, 2) + 
+                                                Math.pow(e.clientY - centerY, 2)
+                                            );
+                                            
+                                            if (distance < minDistance) {
+                                                minDistance = distance;
+                                                closestImage = img;
+                                            }
+                                        });
+                                        
+                                        return closestImage;
+                                    }
+                                }
+                                
+                                return null;
+                            }
+                            
+                            // Start with the clicked element
+                            let targetElement = e.target;
+                            let foundImage = findImageInComplexStructure(targetElement);
+                            
+                            // If no image found in the clicked element, search parent elements
+                            // This handles cases where you click on padding/margin areas
+                            if (!foundImage) {
+                                let currentParent = targetElement.parentElement;
+                                let searchDepth = 0;
+                                
+                                while (currentParent && searchDepth < 5) { // Search up to 5 levels
+                                    foundImage = findImageInComplexStructure(currentParent);
+                                    if (foundImage) {
+                                        break;
+                                    }
+                                    currentParent = currentParent.parentElement;
+                                    searchDepth++;
+                                }
+                            }
+                            
+                            // Use the found image or fall back to the original target
+                            if (foundImage) {
+                                targetElement = foundImage;
+                                const imgSrc = foundImage.src || foundImage.getAttribute('src') || foundImage.getAttribute('data-src') || 'no src';
+                                const imgAlt = foundImage.getAttribute('alt') || 'no alt';
+                                const imgSrcset = foundImage.getAttribute('srcset') || 'no srcset';
+                                
+                                console.log('🖼️ Found image:');
+                                console.log('  - src:', imgSrc);
+                                console.log('  - alt:', imgAlt);
+                                console.log('  - srcset:', imgSrcset.substring(0, 100) + (imgSrcset.length > 100 ? '...' : ''));
+                                console.log('📍 Image element:', foundImage);
+                                
+                                // Generate and log the selector that will be used
+                                const generatedSelector = generateSelector(foundImage);
+                                console.log('🎯 Generated selector:', generatedSelector);
+                            } else {
+                                console.log('❌ No image found, using clicked element:', targetElement.tagName, targetElement.className);
+                            }
+                            
                             // Select new element
-                            selectedElement = e.target;
+                            selectedElement = targetElement;
                             selectedElement.classList.add('element-selected-selection');
                             
                             // Add a unique data attribute for reliable selection
                             const elementId = 'elem_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                            e.target.setAttribute('data-editor-element-id', elementId);
+                            targetElement.setAttribute('data-editor-element-id', elementId);
                             
                             // Send selection to parent window
                             window.parent.postMessage({
                                 type: 'elementSelected',
                                 elementData: {
-                                    tagName: e.target.tagName.toLowerCase(),
-                                    textContent: e.target.textContent.trim(),
-                                    innerHTML: e.target.innerHTML,
-                                    style: e.target.getAttribute('style') || '',
-                                    className: e.target.className,
-                                    id: e.target.id,
+                                    tagName: targetElement.tagName.toLowerCase(),
+                                    textContent: targetElement.textContent.trim(),
+                                    innerHTML: targetElement.innerHTML,
+                                    style: targetElement.getAttribute('style') || '',
+                                    className: targetElement.className,
+                                    id: targetElement.id,
                                     elementId: elementId,
-                                    selector: generateSelector(e.target),
+                                    selector: generateSelector(targetElement),
                                     // Add position information for precise matching
                                     position: {
-                                        parentSelector: e.target.parentElement ? generateSelector(e.target.parentElement) : null,
-                                        siblingIndex: Array.from(e.target.parentElement?.children || []).indexOf(e.target),
-                                        textSnippet: e.target.textContent.trim().substring(0, 50)
+                                        parentSelector: targetElement.parentElement ? generateSelector(targetElement.parentElement) : null,
+                                        siblingIndex: Array.from(targetElement.parentElement?.children || []).indexOf(targetElement),
+                                        textSnippet: targetElement.textContent.trim().substring(0, 50)
                                     }
                                 }
                             }, '*');
@@ -1006,17 +1095,72 @@
                         
                         function handleMouseOver(e) {
                             if (e.target !== selectedElement) {
-                                e.target.classList.add('element-hover-selection');
+                                // Use the same advanced image detection for hover
+                                function findImageForHover(startElement) {
+                                    if (startElement.tagName.toLowerCase() === 'img') {
+                                        return startElement;
+                                    }
+                                    
+                                    const allImages = startElement.querySelectorAll('img');
+                                    if (allImages.length === 1) {
+                                        return allImages[0];
+                                    } else if (allImages.length > 1) {
+                                        // Filter out small images (likely icons)
+                                        const significantImages = Array.from(allImages).filter(img => {
+                                            const rect = img.getBoundingClientRect();
+                                            return rect.width > 50 && rect.height > 50;
+                                        });
+                                        
+                                        if (significantImages.length >= 1) {
+                                            return significantImages[0]; // Return the first significant image
+                                        }
+                                    }
+                                    
+                                    return null;
+                                }
                                 
-                                // Show image indicator for img elements
-                                if (e.target.tagName.toLowerCase() === 'img') {
-                                    showImageIndicator(e.target);
+                                let hoverTarget = e.target;
+                                let imageToHighlight = null;
+                                
+                                // Try to find an image in the hovered element
+                                let foundImage = findImageForHover(hoverTarget);
+                                
+                                // If no image found, try parent elements
+                                if (!foundImage) {
+                                    let currentParent = hoverTarget.parentElement;
+                                    let searchDepth = 0;
+                                    
+                                    while (currentParent && searchDepth < 3) { // Less aggressive for hover
+                                        foundImage = findImageForHover(currentParent);
+                                        if (foundImage) {
+                                            break;
+                                        }
+                                        currentParent = currentParent.parentElement;
+                                        searchDepth++;
+                                    }
+                                }
+                                
+                                if (foundImage) {
+                                    // Show hover effect on the image, not the container
+                                    foundImage.classList.add('element-hover-selection');
+                                    imageToHighlight = foundImage;
+                                } else {
+                                    // No image found, show hover on the original target
+                                    hoverTarget.classList.add('element-hover-selection');
+                                }
+                                
+                                // Show image indicator if we found an image
+                                if (imageToHighlight) {
+                                    showImageIndicator(imageToHighlight);
                                 }
                             }
                         }
                         
                         function handleMouseOut(e) {
-                            e.target.classList.remove('element-hover-selection');
+                            // Remove hover class from all elements (since we might have applied it to a different element)
+                            document.querySelectorAll('.element-hover-selection').forEach(el => {
+                                el.classList.remove('element-hover-selection');
+                            });
                             removeImageIndicator();
                         }
                         
@@ -1071,21 +1215,42 @@
                                 return '#' + id;
                             }
                             
-                            // Try to use class-based selector if available and not too complex
-                            if (className && className.trim() && !className.includes('elementor') && !className.includes('wp-') && className.split(' ').length <= 3) {
-                                const cleanClassName = className.trim().split(' ').join('.');
-                                return tagName + '.' + cleanClassName;
-                            }
-                            
-                            // For images, try to use src attribute for uniqueness
+                            // For images, create a highly specific selector using src attribute
                             if (tagName === 'img') {
-                                const src = element.getAttribute('src');
+                                const src = element.getAttribute('src') || element.getAttribute('data-src');
+                                const srcset = element.getAttribute('srcset');
+                                const alt = element.getAttribute('alt');
+                                
+                                // Try to use src attribute for uniqueness
                                 if (src) {
-                                    // Extract filename from src for more specific targeting
-                                    const filename = src.split('/').pop().split('?')[0];
-                                    if (filename && filename.length > 0) {
-                                        // Use attribute selector with filename
-                                        return 'img[src*="' + filename + '"]';
+                                    // Extract a unique part from the src
+                                    const srcParts = src.split('/');
+                                    const filename = srcParts[srcParts.length - 1];
+                                    const filenameWithoutQuery = filename.split('?')[0];
+                                    const filenameWithoutExt = filenameWithoutQuery.split('.')[0];
+                                    
+                                    if (filenameWithoutExt && filenameWithoutExt.length > 3) {
+                                        return 'img[src*="' + filenameWithoutExt + '"]';
+                                    }
+                                }
+                                
+                                // Try to use alt attribute if src is not unique enough
+                                if (alt && alt.trim() && alt.length > 0) {
+                                    return 'img[alt="' + alt.trim() + '"]';
+                                }
+                                
+                                // Try to use srcset if available
+                                if (srcset) {
+                                    const firstSrcInSet = srcset.split(',')[0].trim().split(' ')[0];
+                                    if (firstSrcInSet) {
+                                        const srcParts = firstSrcInSet.split('/');
+                                        const filename = srcParts[srcParts.length - 1];
+                                        const filenameWithoutQuery = filename.split('?')[0];
+                                        const filenameWithoutExt = filenameWithoutQuery.split('.')[0];
+                                        
+                                        if (filenameWithoutExt && filenameWithoutExt.length > 3) {
+                                            return 'img[srcset*="' + filenameWithoutExt + '"]';
+                                        }
                                     }
                                 }
                             }
@@ -1098,32 +1263,54 @@
                                 const index = sameTagSiblings.indexOf(element) + 1;
                                 
                                 // Create more specific selector with parent context
-                                const parentTag = parent.tagName.toLowerCase();
-                                const parentId = parent.id;
-                                const parentClass = parent.className;
+                                let parentSelector = '';
                                 
-                                let parentSelector = parentTag;
+                                // Try to build a unique parent path
+                                let currentParent = parent;
+                                let parentPath = [];
+                                let depth = 0;
                                 
-                                // Add parent ID if available and valid
-                                if (parentId && /^[a-zA-Z][a-zA-Z0-9_-]*$/.test(parentId)) {
-                                    parentSelector = '#' + parentId;
-                                } else if (parentClass && typeof parentClass === 'string') {
-                                    const cleanParentClass = parentClass
-                                        .split(' ')
-                                        .filter(cls => cls && cls.trim() && !cls.includes('elementor') && !cls.includes('wp-'))
-                                        .slice(0, 2) // Limit to first 2 classes
-                                        .join('.');
-                                    if (cleanParentClass) {
-                                        parentSelector = parentTag + '.' + cleanParentClass;
+                                while (currentParent && depth < 3) {
+                                    const parentTag = currentParent.tagName.toLowerCase();
+                                    const parentId = currentParent.id;
+                                    const parentClass = currentParent.className;
+                                    
+                                    if (parentId && /^[a-zA-Z][a-zA-Z0-9_-]*$/.test(parentId)) {
+                                        parentPath.unshift('#' + parentId);
+                                        break; // ID is unique enough, stop here
+                                    } else if (parentClass && typeof parentClass === 'string') {
+                                        const cleanParentClass = parentClass
+                                            .split(' ')
+                                            .filter(cls => cls && cls.trim() && !cls.includes('elementor') && !cls.includes('wp-'))
+                                            .slice(0, 1) // Use only first class
+                                            .join('.');
+                                        if (cleanParentClass) {
+                                            parentPath.unshift(parentTag + '.' + cleanParentClass);
+                                        } else {
+                                            parentPath.unshift(parentTag);
+                                        }
+                                    } else {
+                                        parentPath.unshift(parentTag);
                                     }
+                                    
+                                    currentParent = currentParent.parentElement;
+                                    depth++;
                                 }
                                 
-                                // Use nth-of-type instead of nth-child for better targeting
+                                parentSelector = parentPath.join(' > ');
+                                
+                                // Use nth-of-type for better targeting when there are multiple siblings
                                 if (sameTagSiblings.length > 1) {
-                                    return parentSelector + ' ' + tagName + ':nth-of-type(' + index + ')';
+                                    return parentSelector + ' > ' + tagName + ':nth-of-type(' + index + ')';
                                 } else {
-                                    return parentSelector + ' ' + tagName;
+                                    return parentSelector + ' > ' + tagName;
                                 }
+                            }
+                            
+                            // Fallback to class-based selector
+                            if (className && className.trim()) {
+                                const cleanClassName = className.trim().split(' ').join('.');
+                                return tagName + '.' + cleanClassName;
                             }
                             
                             return tagName;
@@ -1262,10 +1449,36 @@
                 // Hide color controls for images
                 colorControls.style.display = 'none';
                 
-                // Update element content to show image info
-                const imgSrc = elementData.innerHTML.match(/src="([^"]*)"/) || ['', 'No source'];
-                const imgAlt = elementData.innerHTML.match(/alt="([^"]*)"/) || ['', 'No alt text'];
-                document.getElementById('elementContent').textContent = `Source: ${imgSrc[1]} | Alt: ${imgAlt[1]}`;
+                // Update element content to show image info - extract from actual element attributes
+                let imgSrc = 'No source';
+                let imgAlt = 'No alt text';
+                
+                // Try to extract src from various possible attributes
+                const srcMatch = elementData.innerHTML.match(/src="([^"]*)"/) || elementData.innerHTML.match(/data-src="([^"]*)"/) || ['', ''];
+                if (srcMatch[1]) {
+                    imgSrc = srcMatch[1];
+                } else {
+                    // Try srcset if src is not available
+                    const srcsetMatch = elementData.innerHTML.match(/srcset="([^"]*)"/) || ['', ''];
+                    if (srcsetMatch[1]) {
+                        // Extract first URL from srcset
+                        const firstSrc = srcsetMatch[1].split(',')[0].trim().split(' ')[0];
+                        if (firstSrc) {
+                            imgSrc = firstSrc;
+                        }
+                    }
+                }
+                
+                // Extract alt attribute
+                const altMatch = elementData.innerHTML.match(/alt="([^"]*)"/) || ['', ''];
+                if (altMatch[1]) {
+                    imgAlt = altMatch[1];
+                }
+                
+                // Show filename instead of full URL for better readability
+                const displaySrc = imgSrc !== 'No source' ? imgSrc.split('/').pop().split('?')[0] : imgSrc;
+                
+                document.getElementById('elementContent').textContent = `Source: ${displaySrc} | Alt: ${imgAlt}`;
             } else {
                 // Show regular controls, hide image controls
                 imageControls.style.display = 'none';
