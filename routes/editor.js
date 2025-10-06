@@ -1100,8 +1100,59 @@ router.post(
       // Generate the new image path
       const newImagePath = `./assets/${req.file.filename}`;
 
+      // Store original attributes before making changes
+      const originalWidth = element.attr("width");
+      const originalHeight = element.attr("height");
+      const originalStyle = element.attr("style") || "";
+
       // Update the src attribute
       element.attr("src", newImagePath);
+
+      // Clear lazy loading attributes that might override our image
+      element.removeAttr("data-src");
+      element.removeAttr("data-srcset");
+      element.removeAttr("nitro-lazy-src");
+      element.removeAttr("nitro-lazy-srcset");
+      element.removeAttr("srcset");
+
+      // Restore original dimensions and add comprehensive styling
+      if (originalWidth) element.attr("width", originalWidth);
+      if (originalHeight) element.attr("height", originalHeight);
+
+      // Add styling to maintain proper dimensions
+      let newStyle = originalStyle;
+      if (!newStyle.includes("object-fit")) {
+        newStyle += (newStyle ? "; " : "") + "object-fit: cover";
+      }
+
+      // Only add aspect-ratio if we have original dimensions to calculate from
+      if (
+        !newStyle.includes("aspect-ratio") &&
+        originalWidth &&
+        originalHeight
+      ) {
+        const aspectRatio = originalWidth / originalHeight;
+        newStyle += `; aspect-ratio: ${aspectRatio}`;
+      }
+
+      // Don't add min-height for landscape images (width > height)
+      if (
+        !newStyle.includes("min-height") &&
+        (!originalWidth || !originalHeight || originalHeight >= originalWidth)
+      ) {
+        newStyle += "; min-height: 200px";
+      }
+
+      element.attr("style", newStyle);
+
+      // Remove lazy loading classes
+      element.removeClass("lazyload");
+      element.removeClass("lazyloaded");
+      element.removeClass("nitro-lazy");
+      element.removeClass("lazyautosizes");
+
+      console.log("Updated src:", element.attr("src"));
+      console.log("Lazy loading attributes cleared");
 
       // Create backup
       const backupPath = path.join(
