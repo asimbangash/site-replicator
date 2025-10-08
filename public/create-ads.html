@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Ads - Website Cloner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #2d3748;
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+
+        .main-menu {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .menu-btn {
+            padding: 0.5rem 1rem;
+            background: rgba(102, 126, 234, 0.1);
+            color: #333;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
+
+        .menu-btn:hover, .menu-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 2rem auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 2.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .page-title {
+            color: #2d3748;
+            font-size: 2.2rem;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        .page-description {
+            color: #4a5568;
+            margin-bottom: 2.5rem;
+            text-align: center;
+            font-size: 1.1rem;
+            line-height: 1.5;
+        }
+
+        .input-group {
+            margin-bottom: 2rem;
+        }
+
+        .input-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: #2d3748;
+            font-size: 1.1rem;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+            background: white;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .file-status {
+            margin-top: 0.75rem;
+            padding: 0.5rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .file-status.success {
+            background: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+            border: 1px solid rgba(40, 167, 69, 0.2);
+        }
+
+        .create-btn {
+            width: 100%;
+            padding: 1.25rem;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 1.5rem;
+        }
+
+        .create-btn:hover:not(:disabled) {
+            background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .create-btn:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        .loading h3 {
+            margin-bottom: 1rem;
+            color: #2d3748;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #667eea;
+            width: 0%;
+            transition: width 0.3s ease;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .step-number {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 24px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>🎯 Create Ads</h1>
+            <nav class="main-menu">
+                <a href="/" class="menu-btn">🏠 Home</a>
+                <a href="/editor" class="menu-btn">✏️ Editor</a>
+                <a href="/create-ads" class="menu-btn active">🎯 Create Ads</a>
+                <a href="/approve-ads" class="menu-btn">👍 Approve</a>
+            </nav>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1 class="page-title">Create Marketing Ads</h1>
+        <p class="page-description">
+            Generate professional marketing ads from your cloned landing pages using AI. 
+            Just upload your research document, select a landing page, and let AI create multiple ad variations for you.
+        </p>
+
+        <form id="createAdsForm">
+            <!-- 1. Research Document -->
+            <div class="input-group">
+                <label>
+                    <span class="step-number">1</span>
+                    📋 Research Document
+                </label>
+                <input type="file" id="researchDoc" class="form-input" accept=".pdf,.docx,.txt" required>
+                <div id="researchStatus" class="file-status"></div>
+            </div>
+
+            <!-- 2. Landing Page -->
+            <div class="input-group">
+                <label>
+                    <span class="step-number">2</span>
+                    📄 Landing Page
+                </label>
+                <select id="landingPage" class="form-select" required>
+                    <option value="">Select a cloned site...</option>
+                </select>
+            </div>
+
+            <!-- 3. Reference Image -->
+            <div class="input-group">
+                <label>
+                    <span class="step-number">3</span>
+                    🖼️ Reference Image
+                </label>
+                <input type="file" id="referenceImage" class="form-input" accept="image/*" required>
+                <div id="imageStatus" class="file-status"></div>
+            </div>
+
+            <!-- 4. Number of Creatives -->
+            <div class="input-group">
+                <label>
+                    <span class="step-number">4</span>
+                    🎯 Number of Creatives
+                </label>
+                <select id="creativeCount" class="form-select" required>
+                    <option value="2" selected>2 creatives</option>
+                    <option value="4">4 creatives</option>
+                    <option value="6">6 creatives</option>
+                    <option value="8">8 creatives</option>
+                    <option value="10">10 creatives</option>
+                </select>
+            </div>
+
+            <!-- Create Button -->
+            <button type="submit" id="createBtn" class="create-btn" disabled>
+                🚀 Create Ads
+            </button>
+        </form>
+
+        <!-- Loading State -->
+        <div id="loading" class="loading">
+            <h3>🔄 Creating your ads...</h3>
+            <p>AI is analyzing your inputs and generating creative variations</p>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <p id="loadingStatus">This may take 30-60 seconds</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            loadLandingPages();
+            setupEventListeners();
+        });
+
+        async function loadLandingPages() {
+            try {
+                const response = await fetch('/api/sites');
+                const sites = await response.json();
+                
+                const select = document.getElementById('landingPage');
+                sites.forEach(site => {
+                    const option = document.createElement('option');
+                    option.value = site.siteId;
+                    option.textContent = site.siteName || new URL(site.originalUrl).hostname;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Failed to load sites:', error);
+                alert('Failed to load cloned sites. Please make sure you have cloned some sites first.');
+            }
+        }
+
+        function setupEventListeners() {
+            // File upload handlers
+            document.getElementById('researchDoc').addEventListener('change', handleResearchUpload);
+            document.getElementById('referenceImage').addEventListener('change', handleImageUpload);
+            
+            // Form validation
+            document.getElementById('landingPage').addEventListener('change', validateForm);
+            document.getElementById('creativeCount').addEventListener('change', validateForm);
+            
+            // Form submission
+            document.getElementById('createAdsForm').addEventListener('submit', handleSubmit);
+        }
+
+        function handleResearchUpload(e) {
+            const file = e.target.files[0];
+            const status = document.getElementById('researchStatus');
+            
+            if (file) {
+                const sizeInMB = (file.size / 1024 / 1024).toFixed(1);
+                status.textContent = `✅ ${file.name} (${sizeInMB} MB)`;
+                status.className = 'file-status success';
+            } else {
+                status.textContent = '';
+                status.className = 'file-status';
+            }
+            validateForm();
+        }
+
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            const status = document.getElementById('imageStatus');
+            
+            if (file) {
+                const sizeInMB = (file.size / 1024 / 1024).toFixed(1);
+                status.textContent = `✅ ${file.name} (${sizeInMB} MB)`;
+                status.className = 'file-status success';
+            } else {
+                status.textContent = '';
+                status.className = 'file-status';
+            }
+            validateForm();
+        }
+
+        function validateForm() {
+            const researchDoc = document.getElementById('researchDoc').files[0];
+            const landingPage = document.getElementById('landingPage').value;
+            const referenceImage = document.getElementById('referenceImage').files[0];
+            const creativeCount = document.getElementById('creativeCount').value;
+            
+            const isValid = researchDoc && landingPage && referenceImage && creativeCount;
+            document.getElementById('createBtn').disabled = !isValid;
+        }
+
+        async function handleSubmit(e) {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            formData.append('researchDoc', document.getElementById('researchDoc').files[0]);
+            formData.append('referenceImage', document.getElementById('referenceImage').files[0]);
+            formData.append('landingPage', document.getElementById('landingPage').value);
+            formData.append('creativeCount', document.getElementById('creativeCount').value);
+            
+            // Show loading
+            document.getElementById('createAdsForm').style.display = 'none';
+            document.getElementById('loading').style.display = 'block';
+            
+            // Simulate progress
+            simulateProgress();
+            
+            try {
+                const response = await fetch('/api/create-ads', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Store ads for approval process
+                    sessionStorage.setItem('generatedAds', JSON.stringify(result.creatives));
+                    sessionStorage.setItem('adStats', JSON.stringify(result.stats));
+                    
+                    // Show success message and redirect
+                    alert(`✅ Success! Generated ${result.creatives?.length || 0} high-quality ads.\n\nRedirecting to approval interface...`);
+                    
+                    // Redirect to approval page
+                    window.location.href = '/approve-ads';
+                } else {
+                    throw new Error(result.error || 'Unknown error occurred');
+                }
+                
+            } catch (error) {
+                alert('❌ Error creating ads: ' + error.message + '\n\nPlease check your inputs and try again.');
+                
+                // Show form again
+                document.getElementById('createAdsForm').style.display = 'block';
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function simulateProgress() {
+            const progressFill = document.getElementById('progressFill');
+            const loadingStatus = document.getElementById('loadingStatus');
+            
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress > 100) progress = 100;
+                
+                progressFill.style.width = progress + '%';
+                
+                if (progress < 30) {
+                    loadingStatus.textContent = 'Analyzing research document...';
+                } else if (progress < 60) {
+                    loadingStatus.textContent = 'Processing landing page content...';
+                } else if (progress < 90) {
+                    loadingStatus.textContent = 'Generating creative variations...';
+                } else {
+                    loadingStatus.textContent = 'Finalizing ads...';
+                }
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                }
+            }, 200);
+        }
+    </script>
+</body>
+</html>

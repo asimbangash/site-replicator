@@ -23,6 +23,33 @@
             align-items: center;
         }
 
+        /* Navigation Menu */
+        .main-menu {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 1rem;
+        }
+
+        .menu-btn {
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
+
+        .menu-btn:hover, .menu-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
         .container {
             max-width: 800px;
             width: 90%;
@@ -215,6 +242,13 @@
     </style>
 </head>
 <body>
+    <!-- Navigation Menu -->
+    <nav class="main-menu">
+        <a href="/" class="menu-btn active">🏠 Home</a>
+        <a href="/editor" class="menu-btn">✏️ Editor</a>
+        <a href="/create-ads" class="menu-btn">🎯 Create Ads</a>
+        <a href="/approve-ads" class="menu-btn">👍 Approve</a>
+    </nav>
     <div class="container">
         <h1>🌐 Website Cloner & Editor</h1>
         <p class="description">

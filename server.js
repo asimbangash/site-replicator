@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const { chromium } = require("playwright");
 const axios = require("axios");
@@ -6,9 +8,69 @@ const fs = require("fs").promises;
 const path = require("path");
 const url = require("url");
 const crypto = require("crypto");
+const multer = require("multer");
+
+// Import AI services
+const { initializeAI, generateCreatives } = require("./services/ai-service");
+const { processDocumentForAI } = require("./services/document-processor");
 
 const app = express();
 app.use(express.json());
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "./uploads/");
+  },
+  filename: function (req, file, cb) {
+    const timestamp = Date.now();
+    const extension = path.extname(file.originalname);
+    const baseName = path.basename(file.originalname, extension);
+    cb(null, `${baseName}_${timestamp}${extension}`);
+  },
+});
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: function (req, file, cb) {
+    const allowedTypes = [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".txt",
+      ".jpg",
+      ".jpeg",
+      ".png",
+      ".gif",
+    ];
+    const extension = path.extname(file.originalname).toLowerCase();
+
+    if (allowedTypes.includes(extension)) {
+      cb(null, true);
+    } else {
+      cb(
+        new Error(
+          `File type ${extension} not allowed. Allowed types: ${allowedTypes.join(
+            ", "
+          )}`
+        )
+      );
+    }
+  },
+});
+
+// Ensure uploads directory exists
+async function ensureUploadsDirectory() {
+  try {
+    await fs.access("./uploads");
+  } catch (error) {
+    await fs.mkdir("./uploads", { recursive: true });
+    console.log("📁 Created uploads directory");
+  }
+}
 
 class WebsiteCloner {
   constructor() {
@@ -645,14 +707,201 @@ app.get("/", async (req, res) => {
   }
 });
 
+// Serve the create ads page
+app.get("/create-ads", async (req, res) => {
+  try {
+    const htmlPath = path.join(__dirname, "public", "create-ads.html");
+    const html = await fs.readFile(htmlPath, "utf8");
+    res.send(html);
+  } catch (error) {
+    res.status(500).send("Could not load create ads page");
+  }
+});
+
+// Serve the approve ads page
+app.get("/approve-ads", async (req, res) => {
+  try {
+    const htmlPath = path.join(__dirname, "public", "approve-ads.html");
+    const html = await fs.readFile(htmlPath, "utf8");
+    res.send(html);
+  } catch (error) {
+    res.status(500).send("Could not load approve ads page");
+  }
+});
+
+// API endpoint to create ads
+app.post(
+  "/api/create-ads",
+  upload.fields([
+    { name: "researchDoc", maxCount: 1 },
+    { name: "referenceImage", maxCount: 1 },
+  ]),
+  async (req, res) => {
+    try {
+      console.log("🚀 Starting ad creation process...");
+
+      const { landingPage, creativeCount } = req.body;
+      const researchDoc = req.files.researchDoc?.[0];
+      const referenceImage = req.files.referenceImage?.[0];
+
+      // Validate inputs
+      if (!landingPage) {
+        return res.status(400).json({
+          success: false,
+          error: "Landing page selection is required",
+        });
+      }
+
+      if (!researchDoc) {
+        return res.status(400).json({
+          success: false,
+          error: "Research document is required",
+        });
+      }
+
+      if (!referenceImage) {
+        return res.status(400).json({
+          success: false,
+          error: "Reference image is required",
+        });
+      }
+
+      console.log(`📋 Processing: ${researchDoc.originalname}`);
+      console.log(`🖼️ Reference image: ${referenceImage.originalname}`);
+      console.log(`📄 Landing page: ${landingPage}`);
+      console.log(`🎯 Creative count: ${creativeCount}`);
+
+      // Step 1: Process research document
+      const documentResult = await processDocumentForAI(researchDoc.path);
+
+      if (!documentResult.success) {
+        return res.status(400).json({
+          success: false,
+          error: `Failed to process research document: ${documentResult.error}`,
+        });
+      }
+
+      // Step 2: Get landing page content
+      const landingPageContent = await getLandingPageContent(landingPage);
+
+      // Step 3: Analyze reference image (placeholder for now)
+      const imageAnalysis = `Reference image: ${referenceImage.originalname} (${referenceImage.mimetype})`;
+
+      // Step 4: Generate creatives with AI
+      const aiInputs = {
+        landingPageContent: landingPageContent,
+        researchText: documentResult.text,
+        imageAnalysis: imageAnalysis,
+        creativeCount: parseInt(creativeCount) || 10,
+      };
+
+      const result = await generateCreatives(aiInputs);
+
+      // Step 5: Clean up uploaded files
+      try {
+        await fs.unlink(researchDoc.path);
+        await fs.unlink(referenceImage.path);
+        console.log("🗑️ Cleaned up uploaded files");
+      } catch (cleanupError) {
+        console.warn("⚠️ Could not clean up files:", cleanupError);
+      }
+
+      // Step 6: Return results
+      res.json({
+        success: true,
+        message: `Generated ${result.creatives.length} high-quality ads`,
+        creatives: result.creatives,
+        stats: {
+          totalGenerated: result.totalGenerated,
+          highQuality: result.highQuality,
+          documentAnalysis: documentResult.analysis,
+        },
+      });
+    } catch (error) {
+      console.error("❌ Ad creation failed:", error);
+
+      // Clean up files on error
+      if (req.files) {
+        Object.values(req.files)
+          .flat()
+          .forEach(async (file) => {
+            try {
+              await fs.unlink(file.path);
+            } catch (cleanupError) {
+              // Ignore cleanup errors
+            }
+          });
+      }
+
+      res.status(500).json({
+        success: false,
+        error: `Ad creation failed: ${error.message}`,
+      });
+    }
+  }
+);
+
+// Helper function to get landing page content
+async function getLandingPageContent(siteId) {
+  try {
+    const htmlPath = path.join(__dirname, "cloned_sites", siteId, "index.html");
+    const html = await fs.readFile(htmlPath, "utf8");
+    const $ = cheerio.load(html);
+
+    // Extract text content from the page
+    const content = {
+      title: $("title").text() || $("h1").first().text(),
+      headings: $("h1, h2, h3")
+        .map((i, el) => $(el).text())
+        .get(),
+      paragraphs: $("p")
+        .map((i, el) => $(el).text())
+        .get(),
+      buttons: $('button, .btn, a[class*="btn"]')
+        .map((i, el) => $(el).text())
+        .get(),
+    };
+
+    // Combine into a single text block
+    const combinedContent = [
+      content.title,
+      ...content.headings,
+      ...content.paragraphs,
+      ...content.buttons,
+    ]
+      .filter((text) => text && text.trim().length > 0)
+      .join(" ");
+
+    console.log(
+      `📄 Extracted ${combinedContent.length} characters from landing page`
+    );
+    return combinedContent;
+  } catch (error) {
+    console.error("❌ Failed to get landing page content:", error);
+    throw new Error(`Could not read landing page: ${error.message}`);
+  }
+}
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+
+// Initialize services
+async function initializeServices() {
+  await ensureUploadsDirectory();
+  initializeAI();
+}
+
+app.listen(PORT, async () => {
   console.log(`Website Cloner API running on port ${PORT}`);
+
+  // Initialize services
+  await initializeServices();
+
   console.log(`\nUsage:`);
   console.log(`POST /clone-website - Clone a website`);
   console.log(`GET /cloned-sites - List all cloned sites`);
   console.log(`GET /preview/:siteId - Preview a cloned site`);
   console.log(`GET /editor - Open the Editor Dashboard`);
+  console.log(`GET /create-ads - Create AI-powered ads`);
   console.log(`API endpoints for editing available at /api/sites/*`);
 });
 

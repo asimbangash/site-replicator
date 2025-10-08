@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Approve Ads - Tinder Style</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #2d3748;
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+
+        .main-menu {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .menu-btn {
+            padding: 0.5rem 1rem;
+            background: rgba(102, 126, 234, 0.1);
+            color: #333;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
+
+        .menu-btn:hover, .menu-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            position: relative;
+        }
+
+        .progress-bar {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .progress-text {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 1rem;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .card-stack {
+            position: relative;
+            height: 600px;
+            margin-bottom: 2rem;
+        }
+
+        .ad-card {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            cursor: grab;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            user-select: none;
+        }
+
+        .ad-card:active {
+            cursor: grabbing;
+        }
+
+        .ad-card.dragging {
+            transition: none;
+            z-index: 10;
+        }
+
+        .ad-card.approved {
+            transform: translateX(100%) rotate(20deg);
+            opacity: 0;
+        }
+
+        .ad-card.rejected {
+            transform: translateX(-100%) rotate(-20deg);
+            opacity: 0;
+        }
+
+        .ad-content {
+            text-align: center;
+        }
+
+        .ad-id {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 1rem;
+        }
+
+        .ad-text {
+            font-size: 1.3rem;
+            line-height: 1.6;
+            color: #2d3748;
+            margin-bottom: 2rem;
+            font-weight: 500;
+        }
+
+        .ad-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 12px;
+            margin-top: auto;
+        }
+
+        .ad-score {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .ad-platform {
+            background: #667eea;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+
+        /* Image Ad Styles */
+        .ad-content.image-ad {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .ad-image-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 1rem 0;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #f8fafc;
+        }
+
+        .ad-image-container.full-image {
+            flex: 1;
+            margin: 0.5rem 0;
+            height: calc(100% - 120px); /* Leave space for ad-id and ad-meta */
+        }
+
+        .ad-image {
+            max-width: 100%;
+            max-height: 300px;
+            width: auto;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .ad-image-only {
+            max-width: 100%;
+            max-height: 100%;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .ad-image-fallback {
+            padding: 2rem;
+            text-align: center;
+            color: #666;
+        }
+
+        .ad-details {
+            margin: 1rem 0;
+        }
+
+        .ad-headline {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+
+        .ad-description {
+            font-size: 1rem;
+            color: #4a5568;
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+        }
+
+        .ad-cta {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #667eea;
+            background: #e6f3ff;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .action-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: none;
+            font-size: 2rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .reject-btn {
+            background: #e53e3e;
+            color: white;
+        }
+
+        .reject-btn:hover {
+            background: #c53030;
+            transform: scale(1.1);
+        }
+
+        .approve-btn {
+            background: #38a169;
+            color: white;
+        }
+
+        .approve-btn:hover {
+            background: #2f855a;
+            transform: scale(1.1);
+        }
+
+        .swipe-hints {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 3rem;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .swipe-left {
+            left: 2rem;
+            color: #e53e3e;
+        }
+
+        .swipe-right {
+            right: 2rem;
+            color: #38a169;
+        }
+
+        .completion-screen {
+            display: none;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .completion-screen h2 {
+            color: #2d3748;
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .completion-stats {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 2rem;
+        }
+
+        .completion-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a67d8;
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #2d3748;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+
+        .no-ads {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                margin: 1rem auto;
+                padding: 0 0.5rem;
+            }
+
+            .ad-card {
+                padding: 1.5rem;
+            }
+
+            .action-buttons {
+                gap: 1rem;
+            }
+
+            .action-btn {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>👍👎 Approve Ads</h1>
+            <nav class="main-menu">
+                <a href="/" class="menu-btn">🏠 Home</a>
+                <a href="/editor" class="menu-btn">✏️ Editor</a>
+                <a href="/create-ads" class="menu-btn">🎯 Create Ads</a>
+                <a href="/approve-ads" class="menu-btn active">👍 Approve</a>
+            </nav>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Progress Bar -->
+        <div class="progress-bar">
+            <div class="progress-text" id="progressText">Loading ads...</div>
+            <div class="progress-track">
+                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+            <div class="stats">
+                <span id="rejectedCount">Rejected: 0</span>
+                <span id="approvedCount">Approved: 0</span>
+            </div>
+        </div>
+
+        <!-- Card Stack -->
+        <div class="card-stack" id="cardStack">
+            <!-- Swipe Hints -->
+            <div class="swipe-hints swipe-left" id="swipeLeftHint">✖</div>
+            <div class="swipe-hints swipe-right" id="swipeRightHint">✓</div>
+            
+            <!-- Cards will be inserted here -->
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <button class="action-btn reject-btn" id="rejectBtn">✖</button>
+            <button class="action-btn approve-btn" id="approveBtn">✓</button>
+        </div>
+
+        <!-- Completion Screen -->
+        <div class="completion-screen" id="completionScreen">
+            <h2>🎉 All Done!</h2>
+            <div class="completion-stats" id="completionStats">
+                You approved 0 ads and rejected 0 ads
+            </div>
+            <div class="completion-actions">
+                <a href="/create-ads" class="btn btn-primary">Create More Ads</a>
+                <button class="btn btn-secondary" id="downloadBtn">Download Results</button>
+            </div>
+        </div>
+
+        <!-- No Ads Message -->
+        <div class="no-ads" id="noAds" style="display: none;">
+            <div style="text-align: center; padding: 3rem; background: rgba(255, 255, 255, 0.95); border-radius: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+                <div style="font-size: 4rem; margin-bottom: 1rem;">📝</div>
+                <h3 style="color: #2d3748; font-size: 1.5rem; margin-bottom: 1rem;">No Ads Ready for Approval</h3>
+                <p style="color: #666; font-size: 1.1rem; margin-bottom: 2rem; line-height: 1.5;">
+                    Generate marketing ads first using our AI-powered creation tool.<br>
+                    Upload your research document and reference materials to get started.
+                </p>
+                <a href="/create-ads" class="btn btn-primary" style="font-size: 1.1rem; padding: 1rem 2rem;">
+                    🎯 Create Ads Now
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class TinderAds {
+            constructor() {
+                this.ads = [];
+                this.currentIndex = 0;
+                this.approved = [];
+                this.rejected = [];
+                this.isDragging = false;
+                this.startX = 0;
+                this.startY = 0;
+                this.currentX = 0;
+                this.currentY = 0;
+                
+                this.init();
+            }
+
+            async init() {
+                await this.loadAds();
+                this.setupEventListeners();
+                this.renderCurrentCard();
+                this.updateProgress();
+            }
+
+            async loadAds() {
+                // Try to load real generated ads from sessionStorage
+                const storedAds = sessionStorage.getItem('generatedAds');
+                const storedStats = sessionStorage.getItem('adStats');
+                
+                if (storedAds) {
+                    try {
+                        this.ads = JSON.parse(storedAds);
+                        console.log(`✅ Loaded ${this.ads.length} generated ads for approval`);
+                        
+                        if (storedStats) {
+                            const stats = JSON.parse(storedStats);
+                            console.log('📊 Generation stats:', stats);
+                        }
+                    } catch (error) {
+                        console.error('❌ Error loading ads:', error);
+                        this.ads = [];
+                    }
+                } else {
+                    // No ads available - show proper message
+                    this.ads = [];
+                }
+
+                // Show appropriate interface based on ads availability
+                if (this.ads.length === 0) {
+                    this.showNoAdsInterface();
+                } else {
+                    this.showApprovalInterface();
+                }
+            }
+
+            showNoAdsInterface() {
+                document.getElementById('noAds').style.display = 'block';
+                document.getElementById('cardStack').style.display = 'none';
+                document.querySelector('.action-buttons').style.display = 'none';
+                document.querySelector('.progress-bar').style.display = 'none';
+            }
+
+            showApprovalInterface() {
+                document.getElementById('noAds').style.display = 'none';
+                document.getElementById('cardStack').style.display = 'block';
+                document.querySelector('.action-buttons').style.display = 'flex';
+                document.querySelector('.progress-bar').style.display = 'block';
+            }
+
+            // This method is no longer used - we only show real generated ads
+            // Keeping for backward compatibility but returns empty array
+
+            // Session loading functionality for future implementation
+            async loadFromSession(sessionId) {
+                try {
+                    const response = await fetch(`/api/ad-session/${sessionId}`);
+                    const data = await response.json();
+                    return data.ads || [];
+                } catch (error) {
+                    console.error('Failed to load session:', error);
+                    return [];
+                }
+            }
+
+            setupEventListeners() {
+                // Button listeners
+                document.getElementById('approveBtn').addEventListener('click', () => this.approveAd());
+                document.getElementById('rejectBtn').addEventListener('click', () => this.rejectAd());
+                document.getElementById('downloadBtn').addEventListener('click', () => this.downloadResults());
+
+                // Keyboard listeners
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowRight' || e.key === ' ') this.approveAd();
+                    if (e.key === 'ArrowLeft' || e.key === 'Backspace') this.rejectAd();
+                });
+            }
+
+            renderCurrentCard() {
+                const cardStack = document.getElementById('cardStack');
+                
+                // Clear existing cards
+                const existingCards = cardStack.querySelectorAll('.ad-card');
+                existingCards.forEach(card => card.remove());
+
+                // Render next 3 cards (for stack effect)
+                for (let i = 0; i < 3 && (this.currentIndex + i) < this.ads.length; i++) {
+                    const ad = this.ads[this.currentIndex + i];
+                    const card = this.createCard(ad, i);
+                    cardStack.appendChild(card);
+                }
+
+                // Add touch/mouse events to top card
+                const topCard = cardStack.querySelector('.ad-card');
+                if (topCard) {
+                    this.addCardEvents(topCard);
+                }
+            }
+
+            createCard(ad, stackIndex) {
+                const card = document.createElement('div');
+                card.className = 'ad-card';
+                card.style.transform = `scale(${1 - stackIndex * 0.05}) translateY(${stackIndex * 10}px)`;
+                card.style.zIndex = 10 - stackIndex;
+                
+                // Handle both AI-generated and mock ad formats
+                const adText = ad.text || ad.headline || 'No content available';
+                const adScore = ad.score ? ad.score.toFixed(1) : '8.0';
+                const adPlatform = ad.platform || 'facebook';
+                const adId = ad.id || Math.floor(Math.random() * 1000);
+                const hasImage = ad.imageUrl && ad.imageUrl !== null;
+                
+                // Create different layouts for image vs text ads
+                if (hasImage && ad.type === 'image_ad') {
+                    // Image-only ad layout (no text below)
+                    card.innerHTML = `
+                        <div class="ad-content image-ad">
+                            <div class="ad-id">Ad #${adId}</div>
+                            <div class="ad-image-container full-image">
+                                <img src="${ad.imageUrl}" alt="Generated Ad Image" class="ad-image-only" 
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"/>
+                                <div class="ad-image-fallback" style="display: none;">
+                                    <div class="ad-text">${adText}</div>
+                                </div>
+                            </div>
+                            <div class="ad-meta">
+                                <div class="ad-score">Score: ${adScore}/10</div>
+                                <div class="ad-platform">${adPlatform.toUpperCase()}</div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Text-only ad layout
+                    card.innerHTML = `
+                        <div class="ad-content text-ad">
+                            <div class="ad-id">Ad #${adId}</div>
+                            <div class="ad-text">${adText}</div>
+                            <div class="ad-meta">
+                                <div class="ad-score">Score: ${adScore}/10</div>
+                                <div class="ad-platform">${adPlatform.toUpperCase()}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                return card;
+            }
+
+            addCardEvents(card) {
+                // Mouse events
+                card.addEventListener('mousedown', (e) => this.startDrag(e));
+                document.addEventListener('mousemove', (e) => this.drag(e));
+                document.addEventListener('mouseup', () => this.endDrag());
+
+                // Touch events
+                card.addEventListener('touchstart', (e) => this.startDrag(e.touches[0]));
+                document.addEventListener('touchmove', (e) => this.drag(e.touches[0]));
+                document.addEventListener('touchend', () => this.endDrag());
+            }
+
+            startDrag(e) {
+                this.isDragging = true;
+                this.startX = e.clientX;
+                this.startY = e.clientY;
+                
+                const card = document.querySelector('.ad-card');
+                if (card) {
+                    card.classList.add('dragging');
+                }
+            }
+
+            drag(e) {
+                if (!this.isDragging) return;
+                
+                this.currentX = e.clientX - this.startX;
+                this.currentY = e.clientY - this.startY;
+                
+                const card = document.querySelector('.ad-card');
+                if (card) {
+                    const rotation = this.currentX * 0.1;
+                    card.style.transform = `translateX(${this.currentX}px) translateY(${this.currentY}px) rotate(${rotation}deg)`;
+                    
+                    // Show hints
+                    const leftHint = document.getElementById('swipeLeftHint');
+                    const rightHint = document.getElementById('swipeRightHint');
+                    
+                    if (this.currentX < -50) {
+                        leftHint.style.opacity = Math.min(1, Math.abs(this.currentX) / 100);
+                        rightHint.style.opacity = 0;
+                    } else if (this.currentX > 50) {
+                        rightHint.style.opacity = Math.min(1, this.currentX / 100);
+                        leftHint.style.opacity = 0;
+                    } else {
+                        leftHint.style.opacity = 0;
+                        rightHint.style.opacity = 0;
+                    }
+                }
+            }
+
+            endDrag() {
+                if (!this.isDragging) return;
+                
+                this.isDragging = false;
+                
+                const card = document.querySelector('.ad-card');
+                if (card) {
+                    card.classList.remove('dragging');
+                    
+                    // Determine action based on swipe distance
+                    if (this.currentX > 100) {
+                        this.approveAd();
+                    } else if (this.currentX < -100) {
+                        this.rejectAd();
+                    } else {
+                        // Snap back
+                        card.style.transform = '';
+                    }
+                }
+                
+                // Hide hints
+                document.getElementById('swipeLeftHint').style.opacity = 0;
+                document.getElementById('swipeRightHint').style.opacity = 0;
+                
+                this.currentX = 0;
+                this.currentY = 0;
+            }
+
+            approveAd() {
+                if (this.currentIndex >= this.ads.length) return;
+                
+                const ad = this.ads[this.currentIndex];
+                this.approved.push(ad);
+                
+                const card = document.querySelector('.ad-card');
+                if (card) {
+                    card.classList.add('approved');
+                    setTimeout(() => {
+                        this.nextCard();
+                    }, 300);
+                } else {
+                    this.nextCard();
+                }
+            }
+
+            rejectAd() {
+                if (this.currentIndex >= this.ads.length) return;
+                
+                const ad = this.ads[this.currentIndex];
+                this.rejected.push(ad);
+                
+                const card = document.querySelector('.ad-card');
+                if (card) {
+                    card.classList.add('rejected');
+                    setTimeout(() => {
+                        this.nextCard();
+                    }, 300);
+                } else {
+                    this.nextCard();
+                }
+            }
+
+            nextCard() {
+                this.currentIndex++;
+                
+                if (this.currentIndex >= this.ads.length) {
+                    this.showCompletion();
+                } else {
+                    this.renderCurrentCard();
+                }
+                
+                this.updateProgress();
+            }
+
+            updateProgress() {
+                const total = this.ads.length;
+                const reviewed = this.approved.length + this.rejected.length;
+                const progress = total > 0 ? (reviewed / total) * 100 : 0;
+                
+                document.getElementById('progressText').textContent = 
+                    `${reviewed} of ${total} ads reviewed`;
+                document.getElementById('progressFill').style.width = `${progress}%`;
+                document.getElementById('approvedCount').textContent = 
+                    `Approved: ${this.approved.length}`;
+                document.getElementById('rejectedCount').textContent = 
+                    `Rejected: ${this.rejected.length}`;
+            }
+
+            showCompletion() {
+                document.getElementById('cardStack').style.display = 'none';
+                document.querySelector('.action-buttons').style.display = 'none';
+                document.getElementById('completionScreen').style.display = 'block';
+                
+                document.getElementById('completionStats').textContent = 
+                    `You approved ${this.approved.length} ads and rejected ${this.rejected.length} ads`;
+            }
+
+            downloadResults() {
+                const results = {
+                    approved: this.approved,
+                    rejected: this.rejected,
+                    session: {
+                        timestamp: new Date().toISOString(),
+                        totalAds: this.ads.length,
+                        approvedCount: this.approved.length,
+                        rejectedCount: this.rejected.length
+                    }
+                };
+                
+                const blob = new Blob([JSON.stringify(results, null, 2)], 
+                    { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `approved-ads-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new TinderAds();
+        });
+    </script>
+</body>
+</html>
