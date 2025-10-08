@@ -1,3 +1,5 @@
 /node_modules
 
 /cloned_sites
+
+/.env
