@@ -39,8 +39,18 @@ router.post('/add-domain', async (req, res) => {
       });
     }
 
-    // Normalize domain (remove www prefix, lowercase)
-    const normalizedDomain = domain.toLowerCase().replace(/^www\./, '');
+    // Normalize domain: strip protocol, path, query, port, and leading www
+    const normalizedDomain = (domain || '')
+      .toString()
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//, '')
+      .replace(/\/$/, '')
+      .split('/')[0]
+      .split('?')[0]
+      .split('#')[0]
+      .split(':')[0]
+      .replace(/^www\./, '');
 
     console.log(`🌐 Adding domain: ${normalizedDomain} -> ${siteSlug}`);
 
@@ -149,7 +159,17 @@ router.get('/domains', async (req, res) => {
 router.get('/domains/:domain', async (req, res) => {
   try {
     const { domain } = req.params;
-    const normalizedDomain = domain.toLowerCase().replace(/^www\./, '');
+    const normalizedDomain = (domain || '')
+      .toString()
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//, '')
+      .replace(/\/$/, '')
+      .split('/')[0]
+      .split('?')[0]
+      .split('#')[0]
+      .split(':')[0]
+      .replace(/^www\./, '');
     
     const domainRecord = await Domain.findOne({ domain: normalizedDomain });
     
@@ -183,7 +203,17 @@ router.get('/domains/:domain', async (req, res) => {
 router.post('/domains/:domain/verify', async (req, res) => {
   try {
     const { domain } = req.params;
-    const normalizedDomain = domain.toLowerCase().replace(/^www\./, '');
+    const normalizedDomain = (domain || '')
+      .toString()
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//, '')
+      .replace(/\/$/, '')
+      .split('/')[0]
+      .split('?')[0]
+      .split('#')[0]
+      .split(':')[0]
+      .replace(/^www\./, '');
     
     const domainRecord = await Domain.findOne({ domain: normalizedDomain });
     
@@ -258,7 +288,17 @@ router.post('/domains/:domain/verify', async (req, res) => {
 router.delete('/domains/:domain', async (req, res) => {
   try {
     const { domain } = req.params;
-    const normalizedDomain = domain.toLowerCase().replace(/^www\./, '');
+    const normalizedDomain = (domain || '')
+      .toString()
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//, '')
+      .replace(/\/$/, '')
+      .split('/')[0]
+      .split('?')[0]
+      .split('#')[0]
+      .split(':')[0]
+      .replace(/^www\./, '');
     
     const domainRecord = await Domain.findOne({ domain: normalizedDomain });
     

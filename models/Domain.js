@@ -9,8 +9,9 @@ const domainSchema = new mongoose.Schema({
     trim: true,
     validate: {
       validator: function(v) {
-        // Basic domain validation regex
-        return /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?\.([a-zA-Z]{2,}|[a-zA-Z]{2,}\.[a-zA-Z]{2,})$/.test(v);
+        // Allow multi-level subdomains (labels 1-63 chars, no leading/trailing hyphens), at least one dot
+        // Max total length 253
+        return /^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.(?!-)[A-Za-z0-9-]{1,63}(?<!-))+$/.test(v);
       },
       message: 'Invalid domain format'
     }

@@ -13,10 +13,13 @@ class DomainService {
   constructor() {
     this.serverIP = process.env.SERVER_IP ;
     this.email = process.env.EMAIL ;
-    this.nginxSitesAvailable = '/etc/nginx/sites-available';
-    this.nginxSitesEnabled = '/etc/nginx/sites-enabled';
+    // Allow overriding Nginx paths via env; default to Linux standard locations
+    this.nginxSitesAvailable = process.env.NGINX_SITES_AVAILABLE || '/etc/nginx/sites-available';
+    this.nginxSitesEnabled = process.env.NGINX_SITES_ENABLED || '/etc/nginx/sites-enabled';
     this.appRoot = process.env.APP_ROOT;
     this.appPort = process.env.PORT;
+    // Always manage Nginx/Certbot (user requested no skipping)
+    this.manageNginx = true;
   }
 
   // Heuristic: treat two-label domains as apex (e.g., example.com). This won't
@@ -308,7 +311,7 @@ server {
   async removeDomainConfig(domain) {
     try {
       console.log(`🗑️ Removing configuration for ${domain}...`);
-      
+
       // Remove SSL certificate
       try {
         await execAsync(`sudo certbot delete --cert-name ${domain} --non-interactive`);

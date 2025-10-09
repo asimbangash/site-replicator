@@ -405,7 +405,7 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="domain">Domain Name</label>
-                            <input type="text" id="domain" name="domain" placeholder="example.com" required>
+                            <input type="text" id="domain" name="domain" placeholder="example.com or sub.example.com" required>
                             <small style="color: #6c757d; font-size: 0.9rem;">Enter your domain without www (e.g., example.com)</small>
                         </div>
                         <div class="form-group">
@@ -519,7 +519,9 @@
         async function handleAddDomain(e) {
             e.preventDefault();
             
-            const domain = document.getElementById('domain').value.trim();
+            let domain = document.getElementById('domain').value.trim();
+            // Light client-side normalization: strip protocol and trailing slash
+            domain = domain.replace(/^https?:\/\//, '').replace(/\/$/, '').split('/')[0];
             const siteSlug = document.getElementById('siteSlug').value;
             
             if (!domain || !siteSlug) {
