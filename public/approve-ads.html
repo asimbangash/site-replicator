@@ -361,6 +361,22 @@
             justify-content: center;
         }
 
+        /* Input field styling improvements */
+        #brandNameInput:focus, #campaignNameInput:focus {
+            outline: none;
+            border-color: #4285f4 !important;
+            box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2) !important;
+        }
+
+        #brandNameInput:hover, #campaignNameInput:hover {
+            border-color: #adb5bd !important;
+        }
+
+        #campaignNameInput::placeholder {
+            color: #9ca3af !important;
+            font-style: italic;
+        }
+
         .btn {
             padding: 1rem 2rem;
             border: none;
@@ -794,12 +810,222 @@
             }
 
             showCompletion() {
+                console.log('🎉 Showing completion screen');
+                console.log(`📊 Approved ads: ${this.approved.length}`);
+                console.log(`📊 Rejected ads: ${this.rejected.length}`);
+                
                 document.getElementById('cardStack').style.display = 'none';
                 document.querySelector('.action-buttons').style.display = 'none';
                 document.getElementById('completionScreen').style.display = 'block';
                 
                 document.getElementById('completionStats').textContent = 
                     `You approved ${this.approved.length} ads and rejected ${this.rejected.length} ads`;
+                
+                // Add Google Drive sync button if there are approved ads
+                if (this.approved.length > 0) {
+                    console.log('✅ Adding Google Drive sync button');
+                    this.addDriveSyncButton();
+                } else {
+                    console.log('⚠️ No approved ads - not showing sync button');
+                }
+            }
+
+            addDriveSyncButton() {
+                console.log('🔧 Adding Google Drive sync button...');
+                
+                // Check if button already exists
+                if (document.getElementById('driveSyncBtn')) {
+                    console.log('⚠️ Sync button already exists');
+                    return;
+                }
+                
+                const completionScreen = document.getElementById('completionScreen');
+                console.log('📄 Completion screen found:', !!completionScreen);
+                
+                // Create Google Drive sync section
+                const syncSection = document.createElement('div');
+                syncSection.style.cssText = 'margin-top: 2rem; margin-bottom: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 12px; border: 2px solid #e9ecef;';
+                
+                syncSection.innerHTML = `
+                    <h3 style="margin: 0 0 1rem 0; color: #495057; font-size: 1.2rem; display: flex; align-items: center;">
+                        <span style="margin-right: 0.5rem;">📤</span>
+                        Sync to Google Drive
+                    </h3>
+                    <p style="margin: 0 0 1rem 0; color: #6c757d; font-size: 0.9rem;">
+                        Save your approved ads to Google Drive with organized folders and metadata
+                    </p>
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem;">
+                        <input type="text" id="brandNameInput" placeholder="Brand Name (e.g., Cosara)" 
+                               style="width: 100%; padding: 0.75rem; border: 1px solid #ced4da; border-radius: 8px; font-size: 0.9rem; box-sizing: border-box; transition: border-color 0.2s ease;">
+                        <input type="text" id="campaignNameInput" placeholder="Campaign Name (optional)" 
+                               style="width: 100%; padding: 0.75rem; border: 1px solid #ced4da; border-radius: 8px; font-size: 0.9rem; box-sizing: border-box; transition: border-color 0.2s ease; color: #6c757d;">
+                    </div>
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <button id="driveSyncBtn" style="
+                            background: linear-gradient(135deg, #4285f4, #34a853);
+                            color: white;
+                            border: none;
+                            padding: 0.75rem 1.5rem;
+                            border-radius: 8px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            font-size: 0.9rem;
+                            display: flex;
+                            align-items: center;
+                            gap: 0.5rem;
+                            transition: all 0.3s ease;
+                        ">
+                            <span>📤</span>
+                            Sync ${this.approved.length} Ads to Drive
+                        </button>
+                        <button id="testConnectionBtn" style="
+                            background: #6c757d;
+                            color: white;
+                            border: none;
+                            padding: 0.75rem 1rem;
+                            border-radius: 8px;
+                            font-size: 0.8rem;
+                            cursor: pointer;
+                        ">
+                            Test Connection
+                        </button>
+                    </div>
+                    <div id="syncStatus" style="margin-top: 1rem; font-size: 0.9rem;"></div>
+                `;
+                
+                // Insert before existing buttons
+                const existingButtons = completionScreen.querySelector('.completion-actions');
+                console.log('🔍 Found completion-actions:', !!existingButtons);
+                
+                if (existingButtons) {
+                    completionScreen.insertBefore(syncSection, existingButtons);
+                    console.log('✅ Inserted sync section before existing buttons');
+                } else {
+                    completionScreen.appendChild(syncSection);
+                    console.log('✅ Appended sync section to completion screen');
+                }
+                
+                // Add event listeners
+                document.getElementById('driveSyncBtn').addEventListener('click', () => this.syncToGoogleDrive());
+                document.getElementById('testConnectionBtn').addEventListener('click', () => this.testDriveConnection());
+                
+                // Set default brand name if available
+                // document.getElementById('brandNameInput').value = 'Fitness Brand';
+                
+                console.log('🎯 Google Drive sync button added successfully!');
+            }
+
+            async testDriveConnection() {
+                const statusDiv = document.getElementById('syncStatus');
+                const testBtn = document.getElementById('testConnectionBtn');
+                
+                try {
+                    testBtn.disabled = true;
+                    testBtn.textContent = 'Testing...';
+                    statusDiv.innerHTML = '<span style="color: #6c757d;">🔄 Testing Google Drive connection...</span>';
+                    
+                    const response = await fetch('/api/test-drive-connection');
+                    const result = await response.json();
+                    
+                    if (result.connected) {
+                        statusDiv.innerHTML = '<span style="color: #28a745;">✅ Google Drive connection successful!</span>';
+                    } else {
+                        statusDiv.innerHTML = '<span style="color: #dc3545;">❌ Google Drive connection failed. Please check your credentials.</span>';
+                    }
+                } catch (error) {
+                    statusDiv.innerHTML = `<span style="color: #dc3545;">❌ Connection test failed: ${error.message}</span>`;
+                } finally {
+                    testBtn.disabled = false;
+                    testBtn.textContent = 'Test Connection';
+                }
+            }
+
+            async syncToGoogleDrive() {
+                if (this.approved.length === 0) {
+                    alert('No approved ads to sync!');
+                    return;
+                }
+                
+                const brandName = document.getElementById('brandNameInput').value.trim();
+                const campaignName = document.getElementById('campaignNameInput').value.trim();
+                const statusDiv = document.getElementById('syncStatus');
+                const syncBtn = document.getElementById('driveSyncBtn');
+                
+                if (!brandName) {
+                    alert('Please enter a brand name');
+                    document.getElementById('brandNameInput').focus();
+                    return;
+                }
+                
+                try {
+                    syncBtn.disabled = true;
+                    syncBtn.innerHTML = '<span>⏳</span> Syncing...';
+                    statusDiv.innerHTML = '<span style="color: #6c757d;">📤 Syncing ads to Google Drive...</span>';
+                    
+                    const response = await fetch('/api/sync-to-drive', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            approvedAds: this.approved,
+                            brandName: brandName,
+                            campaignName: campaignName || `Campaign_${new Date().toISOString().split('T')[0]}`
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        statusDiv.innerHTML = `
+                            <div style="color: #28a745; margin-bottom: 0.5rem;">
+                                ✅ Successfully synced ${result.stats.successful} out of ${result.stats.total} ads!
+                            </div>
+                            <div style="font-size: 0.8rem; color: #6c757d;">
+                                📁 Saved to: Creatives/${result.stats.brandName}/${new Date().toISOString().split('T')[0]}
+                            </div>
+                        `;
+                        
+                        // Show success details
+                        if (result.results && result.results.length > 0) {
+                            this.showSyncResults(result.results);
+                        }
+                    } else {
+                        throw new Error(result.error || 'Sync failed');
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ Google Drive sync failed:', error);
+                    statusDiv.innerHTML = `<span style="color: #dc3545;">❌ Sync failed: ${error.message}</span>`;
+                } finally {
+                    syncBtn.disabled = false;
+                    syncBtn.innerHTML = `<span>📤</span> Sync ${this.approved.length} Ads to Drive`;
+                }
+            }
+
+            showSyncResults(results) {
+                const successfulResults = results.filter(r => r.status === 'success');
+                
+                if (successfulResults.length === 0) return;
+                
+                const resultsList = successfulResults.map(result => 
+                    `<li style="margin-bottom: 0.5rem;">
+                        <strong>${result.headline || result.adId}</strong><br>
+                        <small style="color: #6c757d;">
+                            📷 <a href="${result.imageUrl}" target="_blank" style="color: #007bff;">View Image</a> | 
+                            📄 <a href="${result.metadataUrl}" target="_blank" style="color: #007bff;">View Metadata</a>
+                        </small>
+                    </li>`
+                ).join('');
+                
+                const resultsDiv = document.createElement('div');
+                resultsDiv.style.cssText = 'margin-top: 1rem; padding: 1rem; background: #e8f5e8; border-radius: 8px; border: 1px solid #c3e6c3;';
+                resultsDiv.innerHTML = `
+                    <h4 style="margin: 0 0 0.5rem 0; color: #155724; font-size: 1rem;">📋 Synced Files:</h4>
+                    <ul style="margin: 0; padding-left: 1.5rem; font-size: 0.9rem;">
+                        ${resultsList}
+                    </ul>
+                `;
+                
+                document.getElementById('syncStatus').appendChild(resultsDiv);
             }
 
             downloadResults() {

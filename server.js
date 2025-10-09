@@ -13,9 +13,11 @@ const multer = require("multer");
 // Import AI services
 const { initializeAI, generateCreatives } = require("./services/ai-service");
 const { processDocumentForAI } = require("./services/document-processor");
+const { GoogleDriveService } = require("./services/google-drive-service");
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -62,6 +64,9 @@ const upload = multer({
   },
 });
 
+// Initialize Google Drive service
+const driveService = new GoogleDriveService();
+
 // Ensure uploads directory exists
 async function ensureUploadsDirectory() {
   try {
@@ -69,6 +74,22 @@ async function ensureUploadsDirectory() {
   } catch (error) {
     await fs.mkdir("./uploads", { recursive: true });
     console.log("📁 Created uploads directory");
+  }
+}
+
+// Initialize services
+async function initializeServices() {
+  await ensureUploadsDirectory();
+  await initializeAI();
+
+  // Initialize Google Drive service
+  try {
+    await driveService.initialize();
+  } catch (error) {
+    console.warn(
+      "⚠️ Google Drive service initialization failed:",
+      error.message
+    );
   }
 }
 
@@ -841,6 +862,103 @@ app.post(
   }
 );
 
+// API endpoint to sync approved ads to Google Drive
+app.post("/api/sync-to-drive", async (req, res) => {
+  try {
+    console.log("📤 Starting Google Drive sync...");
+    const { approvedAds, brandName, campaignName } = req.body;
+
+    // Validate input
+    if (
+      !approvedAds ||
+      !Array.isArray(approvedAds) ||
+      approvedAds.length === 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: "No approved ads provided for sync",
+      });
+    }
+
+    console.log(
+      `📤 Syncing ${approvedAds.length} approved ads to Google Drive...`
+    );
+    console.log(`📋 Brand: ${brandName || "Default Brand"}`);
+    console.log(`📋 Campaign: ${campaignName || "Default Campaign"}`);
+
+    // Test Google Drive connection first
+    const connectionTest = await driveService.testConnection();
+    if (!connectionTest) {
+      throw new Error(
+        "Google Drive connection failed. Please check your credentials."
+      );
+    }
+
+    // Upload approved ads to Google Drive
+    const results = await driveService.uploadApprovedAds(
+      approvedAds,
+      brandName || "Default Brand",
+      campaignName || `Campaign_${new Date().toISOString().split("T")[0]}`
+    );
+
+    const successCount = results.filter((r) => r.status === "success").length;
+    const failedCount = results.filter((r) => r.status === "failed").length;
+
+    console.log(
+      `✅ Google Drive sync completed: ${successCount} success, ${failedCount} failed`
+    );
+
+    res.json({
+      success: true,
+      message: `Successfully synced ${successCount} out of ${approvedAds.length} ads to Google Drive`,
+      results: results,
+      stats: {
+        total: approvedAds.length,
+        successful: successCount,
+        failed: failedCount,
+        brandName: brandName || "Default Brand",
+        campaignName:
+          campaignName || `Campaign_${new Date().toISOString().split("T")[0]}`,
+        syncDate: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    console.error("❌ Google Drive sync failed:", error);
+    res.status(500).json({
+      success: false,
+      error: `Google Drive sync failed: ${error.message}`,
+    });
+  }
+});
+
+// API endpoint to test Google Drive connection
+app.get("/api/test-drive-connection", async (req, res) => {
+  try {
+    const isConnected = await driveService.testConnection();
+
+    if (isConnected) {
+      res.json({
+        success: true,
+        message: "Google Drive connection successful",
+        connected: true,
+      });
+    } else {
+      res.json({
+        success: false,
+        message: "Google Drive connection failed",
+        connected: false,
+      });
+    }
+  } catch (error) {
+    console.error("❌ Drive connection test failed:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      connected: false,
+    });
+  }
+});
+
 // Helper function to get landing page content
 async function getLandingPageContent(siteId) {
   try {
@@ -884,25 +1002,25 @@ async function getLandingPageContent(siteId) {
 
 const PORT = process.env.PORT || 3000;
 
-// Initialize services
-async function initializeServices() {
-  await ensureUploadsDirectory();
-  initializeAI();
-}
-
 app.listen(PORT, async () => {
-  console.log(`Website Cloner API running on port ${PORT}`);
+  console.log(`🚀 Website Cloner API running on port ${PORT}`);
 
   // Initialize services
   await initializeServices();
 
-  console.log(`\nUsage:`);
-  console.log(`POST /clone-website - Clone a website`);
-  console.log(`GET /cloned-sites - List all cloned sites`);
-  console.log(`GET /preview/:siteId - Preview a cloned site`);
-  console.log(`GET /editor - Open the Editor Dashboard`);
-  console.log(`GET /create-ads - Create AI-powered ads`);
-  console.log(`API endpoints for editing available at /api/sites/*`);
+  console.log(`\n📝 Available endpoints:`);
+  console.log(`   • POST /clone-website - Clone a website`);
+  console.log(`   • GET /cloned-sites - List all cloned sites`);
+  console.log(`   • GET /preview/:siteId - Preview a cloned site`);
+  console.log(`   • GET /editor - Open the Editor Dashboard`);
+  console.log(`   • GET /create-ads - Create AI-powered ads`);
+  console.log(`   • GET /approve-ads - Ad approval interface`);
+  console.log(
+    `   • POST /api/sync-to-drive - Sync approved ads to Google Drive`
+  );
+  console.log(
+    `   • GET /api/test-drive-connection - Test Google Drive connection`
+  );
 });
 
 module.exports = { WebsiteCloner, app };
