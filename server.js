@@ -931,6 +931,53 @@ app.post("/api/sync-to-drive", async (req, res) => {
   }
 });
 
+// API endpoint to edit ads with AI
+app.post("/api/edit-ad", async (req, res) => {
+  try {
+    console.log("🤖 Starting AI ad editing...");
+    const { originalAd, prompt, adId } = req.body;
+
+    if (!originalAd) {
+      return res
+        .status(400)
+        .json({ success: false, error: "Original ad data is required" });
+    }
+    if (!prompt || prompt.trim().length === 0) {
+      return res
+        .status(400)
+        .json({ success: false, error: "Edit prompt is required" });
+    }
+
+    console.log(`✏️ Editing ad #${adId} with prompt: "${prompt}"`);
+    console.log(`📝 Original ad:`, originalAd);
+
+    const { editAdWithAI } = require("./services/ai-service");
+    const editResult = await editAdWithAI({
+      originalAd: originalAd,
+      editPrompt: prompt,
+      adId: adId,
+    });
+
+    if (editResult.success) {
+      console.log(`✅ Successfully edited ad #${adId}`);
+      res.json({
+        success: true,
+        message: "Ad edited successfully",
+        editedAd: editResult.editedAd,
+        changes: editResult.changes,
+      });
+    } else {
+      throw new Error(editResult.error || "AI editing failed");
+    }
+  } catch (error) {
+    console.error("❌ Ad editing failed:", error);
+    res.status(500).json({
+      success: false,
+      error: `Ad editing failed: ${error.message}`,
+    });
+  }
+});
+
 // API endpoint to test Google Drive connection
 app.get("/api/test-drive-connection", async (req, res) => {
   try {
