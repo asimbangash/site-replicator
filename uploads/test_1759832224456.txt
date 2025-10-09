@@ -1,0 +1,20 @@
+Currently, the application does not track activity across all applications on your system.
+ The code shows that activity tracking is limited to interactions within the timetracker application window only.
+To enable system-wide activity tracking, significant changes would be required:
+
+Electron Native Modules:
+ The application would need to use Electron's native modules to access system-level input events.
+
+Operating System Permissions: 
+The app would require explicit permissions from your operating system to monitor global keyboard and mouse events.
+
+Code Changes: The current implementation using browser-based event listeners (window.addEventListener) 
+would need to be replaced with platform-specific code using Electron's IPC to communicate with native modules.
+
+Privacy Considerations: System-wide tracking raises privacy concerns and would likely require clear user consent.
+This type of functionality is possible but would require substantial development work and would need
+ to address important privacy and security considerations. The current code base does not have this
+ capability implemented.
+
+
+
