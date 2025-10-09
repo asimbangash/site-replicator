@@ -9,11 +9,16 @@ const path = require("path");
 const url = require("url");
 const crypto = require("crypto");
 const multer = require("multer");
+const mongoose = require("mongoose");
 
 // Import AI services
 const { initializeAI, generateCreatives } = require("./services/ai-service");
 const { processDocumentForAI } = require("./services/document-processor");
 const { GoogleDriveService } = require("./services/google-drive-service");
+
+// Import Domain services
+const Domain = require("./models/Domain");
+const CronService = require("./services/cron-service");
 
 const app = express();
 app.use(express.json({ limit: "50mb" }));
@@ -67,6 +72,9 @@ const upload = multer({
 // Initialize Google Drive service
 const driveService = new GoogleDriveService();
 
+// Initialize Cron service for domain management
+const cronService = new CronService();
+
 // Ensure uploads directory exists
 async function ensureUploadsDirectory() {
   try {
@@ -90,6 +98,23 @@ async function initializeServices() {
       "⚠️ Google Drive service initialization failed:",
       error.message
     );
+  }
+
+  // Initialize MongoDB connection
+  try {
+    const mongoURI = process.env.MONGO_URI;
+    await mongoose.connect(mongoURI);
+    console.log('MongoDB connected');
+  } catch (error) {
+    console.warn('MongoDB connection failed:', error.message);
+  }
+
+  // Start cron service for domain management
+  try {
+    cronService.start();
+    console.log('Cron service started for domain management');
+  } catch (error) {
+    console.warn('Cron service failed to start:', error.message);
   }
 }
 
@@ -671,9 +696,54 @@ app.use("/cloned-sites/:siteId/assets", (req, res, next) => {
   express.static(assetsPath)(req, res, next);
 });
 
+// Host-based routing middleware for custom domains
+app.use(async (req, res, next) => {
+  try {
+    const host = req.headers.host;
+    if (!host) return next();
+    
+    // Remove www prefix and port for domain lookup
+    const cleanHost = host.replace(/^www\./, '').split(':')[0];
+    
+    // Skip if this is localhost or IP address
+    if (cleanHost === 'localhost' || /^\d+\.\d+\.\d+\.\d+$/.test(cleanHost)) {
+      return next();
+    }
+    
+    // Look up domain mapping
+    const domainMapping = await Domain.findOne({ 
+      domain: cleanHost, 
+      connected: true 
+    });
+    
+    if (domainMapping) {
+      console.log(`🌐 Host-based routing: ${cleanHost} -> /site/${domainMapping.siteSlug}`);
+      
+      // Rewrite URL to point to the specific site
+      const originalUrl = req.url;
+      req.url = `/site/${domainMapping.siteSlug}${originalUrl}`;
+      
+      // Set headers for proper site serving
+      req.headers['x-original-host'] = host;
+      req.headers['x-site-slug'] = domainMapping.siteSlug;
+      
+      console.log(`🔄 Rewritten URL: ${originalUrl} -> ${req.url}`);
+    }
+    
+    next();
+  } catch (error) {
+    console.error('❌ Host-based routing error:', error.message);
+    next();
+  }
+});
+
 // Use editor routes first (important for route priority)
 const editorRoutes = require("./routes/editor");
 app.use("/", editorRoutes);
+
+// Domain management routes
+const domainRoutes = require("./routes/domains");
+app.use("/api", domainRoutes);
 
 // We no longer need this route as we'll use the dynamic routing below
 
@@ -747,6 +817,17 @@ app.get("/approve-ads", async (req, res) => {
     res.send(html);
   } catch (error) {
     res.status(500).send("Could not load approve ads page");
+  }
+});
+
+// Serve the domain management page
+app.get("/domains", async (req, res) => {
+  try {
+    const htmlPath = path.join(__dirname, "public", "domains.html");
+    const html = await fs.readFile(htmlPath, "utf8");
+    res.send(html);
+  } catch (error) {
+    res.status(500).send("Could not load domain management page");
   }
 });
 
@@ -1015,6 +1096,9 @@ app.listen(PORT, async () => {
   console.log(`   • GET /editor - Open the Editor Dashboard`);
   console.log(`   • GET /create-ads - Create AI-powered ads`);
   console.log(`   • GET /approve-ads - Ad approval interface`);
+  console.log(`   • GET /domains - Custom Domain Management`);
+  console.log(`   • POST /api/add-domain - Add custom domain`);
+  console.log(`   • GET /api/domains - List all domains`);
   console.log(
     `   • POST /api/sync-to-drive - Sync approved ads to Google Drive`
   );
