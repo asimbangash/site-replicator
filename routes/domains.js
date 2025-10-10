@@ -282,6 +282,66 @@ router.post('/domains/:domain/verify', async (req, res) => {
 });
 
 /**
+ * POST /api/domains/:domain/regenerate-config
+ * Regenerate Nginx configuration for an existing domain
+ */
+router.post('/domains/:domain/regenerate-config', async (req, res) => {
+  try {
+    const { domain } = req.params;
+    const normalizedDomain = domain.toLowerCase().trim().replace(/^www\./, '');
+    
+    console.log(`🔄 Regenerating Nginx config for ${normalizedDomain}...`);
+    
+    // Find domain record
+    const domainRecord = await Domain.findOne({ domain: normalizedDomain });
+    if (!domainRecord) {
+      return res.status(404).json({
+        success: false,
+        error: 'Domain not found'
+      });
+    }
+    
+    // Regenerate Nginx configuration
+    const nginxSuccess = await domainService.createNginxConfig(
+      normalizedDomain,
+      domainRecord.siteSlug
+    );
+    
+    if (nginxSuccess) {
+      // Re-issue SSL certificate (Certbot will update the Nginx config)
+      const sslSuccess = await domainService.issueSSLCertificate(normalizedDomain);
+      
+      if (sslSuccess) {
+        const expiryDate = await domainService.getCertificateExpiry(normalizedDomain);
+        if (expiryDate) {
+          domainRecord.sslExpiry = expiryDate;
+        }
+      }
+      
+      domainRecord.lastChecked = new Date();
+      await domainRecord.save();
+      
+      res.json({
+        success: true,
+        message: 'Nginx configuration regenerated successfully',
+        domain: domainRecord
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to regenerate Nginx configuration'
+      });
+    }
+  } catch (error) {
+    console.error('Regenerate config error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
  * DELETE /api/domains/:domain
  * Remove a domain and its configuration
  */

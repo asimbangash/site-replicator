@@ -745,6 +745,54 @@ app.use("/", editorRoutes);
 const domainRoutes = require("./routes/domains");
 app.use("/api", domainRoutes);
 
+// Route handler for custom domain sites (after host-based routing middleware rewrites URL)
+app.use("/site/:siteSlug", async (req, res, next) => {
+  const { siteSlug } = req.params;
+  const sitePath = path.join(__dirname, "cloned_sites", siteSlug);
+  
+  try {
+    // Check if site exists
+    await fs.access(sitePath);
+    
+    // Serve index.html for root requests or static files for asset requests
+    if (req.url === '/' || req.url === '') {
+      const htmlPath = path.join(sitePath, "index.html");
+      let html = await fs.readFile(htmlPath, "utf8");
+      
+      // Fix asset paths to work with the /site/slug prefix
+      html = html.replace(
+        /src="\.\/assets\//g,
+        `src="/cloned-sites/${siteSlug}/assets/`
+      );
+      html = html.replace(
+        /href="\.\/assets\//g,
+        `href="/cloned-sites/${siteSlug}/assets/`
+      );
+      html = html.replace(
+        /url\(\.\/assets\//g,
+        `url(/cloned-sites/${siteSlug}/assets/`
+      );
+      html = html.replace(
+        /href="\.\/custom-colors\.css"/g,
+        `href="/cloned-sites/${siteSlug}/custom-colors.css"`
+      );
+      html = html.replace(
+        "<head>",
+        `<head><base href="/cloned-sites/${siteSlug}/">`
+      );
+      
+      res.send(html);
+    } else {
+      // Serve static files
+      express.static(sitePath)(req, res, next);
+    }
+  } catch (error) {
+    // Site doesn't exist
+    console.error(`Site ${siteSlug} not found:`, error.message);
+    res.status(404).send(`Site "${siteSlug}" not found`);
+  }
+});
+
 // We no longer need this route as we'll use the dynamic routing below
 
 // Simple dynamic routing: serve cloned sites directly by folder name (dynamic routes )
