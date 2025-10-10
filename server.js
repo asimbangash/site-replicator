@@ -762,6 +762,7 @@ app.use("/:siteName", async (req, res, next) => {
       "clone-website",
       "preview",
       "site",
+      "domains"
     ].includes(siteName)
   ) {
     return next();
