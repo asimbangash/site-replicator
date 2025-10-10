@@ -773,27 +773,27 @@ app.post(
         });
       }
 
-      if (!researchDoc) {
-        return res.status(400).json({
-          success: false,
-          error: "Research document is required",
-        });
+      // Research document and reference image are now optional
+      if (researchDoc) {
+        console.log(`📋 Processing: ${researchDoc.originalname}`);
+      } else {
+        console.log(`📋 No research document provided (optional)`);
       }
 
-      if (!referenceImage) {
-        return res.status(400).json({
-          success: false,
-          error: "Reference image is required",
-        });
+      if (referenceImage) {
+        console.log(`🖼️ Reference image: ${referenceImage.originalname}`);
+      } else {
+        console.log(`🖼️ No reference image provided (optional)`);
       }
 
-      console.log(`📋 Processing: ${researchDoc.originalname}`);
-      console.log(`🖼️ Reference image: ${referenceImage.originalname}`);
       console.log(`📄 Landing page: ${landingPage}`);
       console.log(`🎯 Creative count: ${creativeCount}`);
 
-      // Step 1: Process research document
-      const documentResult = await processDocumentForAI(researchDoc.path);
+      // Step 1: Process research document (if provided)
+      let documentResult = { success: true, content: "" };
+      if (researchDoc) {
+        documentResult = await processDocumentForAI(researchDoc.path);
+      }
 
       if (!documentResult.success) {
         return res.status(400).json({
@@ -805,13 +805,15 @@ app.post(
       // Step 2: Get landing page content
       const landingPageContent = await getLandingPageContent(landingPage);
 
-      // Step 3: Analyze reference image (placeholder for now)
-      const imageAnalysis = `Reference image: ${referenceImage.originalname} (${referenceImage.mimetype})`;
+      // Step 3: Analyze reference image (if provided)
+      const imageAnalysis = referenceImage
+        ? `Reference image: ${referenceImage.originalname} (${referenceImage.mimetype})`
+        : "No reference image provided";
 
       // Step 4: Generate creatives with AI
       const aiInputs = {
         landingPageContent: landingPageContent,
-        researchText: documentResult.text,
+        researchText: documentResult.text || "",
         imageAnalysis: imageAnalysis,
         creativeCount: parseInt(creativeCount) || 10,
       };
@@ -820,9 +822,14 @@ app.post(
 
       // Step 5: Clean up uploaded files
       try {
-        await fs.unlink(researchDoc.path);
-        await fs.unlink(referenceImage.path);
-        console.log("🗑️ Cleaned up uploaded files");
+        if (researchDoc) {
+          await fs.unlink(researchDoc.path);
+          console.log("🗑️ Cleaned up research document");
+        }
+        if (referenceImage) {
+          await fs.unlink(referenceImage.path);
+          console.log("🗑️ Cleaned up reference image");
+        }
       } catch (cleanupError) {
         console.warn("⚠️ Could not clean up files:", cleanupError);
       }
