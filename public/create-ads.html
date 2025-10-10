@@ -222,7 +222,7 @@
         <h1 class="page-title">Create Marketing Ads</h1>
         <p class="page-description">
             Generate professional marketing ads from your cloned landing pages using AI. 
-            Just upload your research document, select a landing page, and let AI create multiple ad variations for you.
+            Select a landing page and let AI create multiple ad variations. Optionally upload research documents and reference images for better results.
         </p>
 
         <form id="createAdsForm">
@@ -230,9 +230,9 @@
             <div class="input-group">
                 <label>
                     <span class="step-number">1</span>
-                    📋 Research Document
+                    📋 Research Document <span style="color: #666; font-weight: normal;">(Optional)</span>
                 </label>
-                <input type="file" id="researchDoc" class="form-input" accept=".pdf,.docx,.txt" required>
+                <input type="file" id="researchDoc" class="form-input" accept=".pdf,.docx,.txt">
                 <div id="researchStatus" class="file-status"></div>
             </div>
 
@@ -251,9 +251,9 @@
             <div class="input-group">
                 <label>
                     <span class="step-number">3</span>
-                    🖼️ Reference Image
+                    🖼️ Reference Image <span style="color: #666; font-weight: normal;">(Optional)</span>
                 </label>
-                <input type="file" id="referenceImage" class="form-input" accept="image/*" required>
+                <input type="file" id="referenceImage" class="form-input" accept="image/*">
                 <div id="imageStatus" class="file-status"></div>
             </div>
 
@@ -357,12 +357,11 @@
         }
 
         function validateForm() {
-            const researchDoc = document.getElementById('researchDoc').files[0];
             const landingPage = document.getElementById('landingPage').value;
-            const referenceImage = document.getElementById('referenceImage').files[0];
             const creativeCount = document.getElementById('creativeCount').value;
             
-            const isValid = researchDoc && landingPage && referenceImage && creativeCount;
+            // Only require landing page and creative count (research doc and image are optional)
+            const isValid = landingPage && creativeCount;
             document.getElementById('createBtn').disabled = !isValid;
         }
 
@@ -370,8 +369,18 @@
             e.preventDefault();
             
             const formData = new FormData();
-            formData.append('researchDoc', document.getElementById('researchDoc').files[0]);
-            formData.append('referenceImage', document.getElementById('referenceImage').files[0]);
+            
+            // Only append files if they exist (optional fields)
+            const researchDoc = document.getElementById('researchDoc').files[0];
+            if (researchDoc) {
+                formData.append('researchDoc', researchDoc);
+            }
+            
+            const referenceImage = document.getElementById('referenceImage').files[0];
+            if (referenceImage) {
+                formData.append('referenceImage', referenceImage);
+            }
+            
             formData.append('landingPage', document.getElementById('landingPage').value);
             formData.append('creativeCount', document.getElementById('creativeCount').value);
             
