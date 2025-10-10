@@ -302,6 +302,16 @@
             transform: scale(1.1);
         }
 
+        .edit-btn {
+            background: #667eea;
+            color: white;
+        }
+
+        .edit-btn:hover {
+            background: #5a67d8;
+            transform: scale(1.1);
+        }
+
         .approve-btn {
             background: #38a169;
             color: white;
@@ -413,6 +423,187 @@
             color: #666;
         }
 
+        /* Edit Modal Styles */
+        .edit-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .edit-modal {
+            background: white;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .edit-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px 20px 0 0;
+        }
+
+        .edit-modal-header h3 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .close-modal-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .close-modal-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .edit-modal-content {
+            padding: 1.5rem;
+        }
+
+        .current-ad-preview {
+            margin-bottom: 1.5rem;
+        }
+
+        .current-ad-preview h4 {
+            margin: 0 0 1rem 0;
+            color: #2d3748;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .ad-preview-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1rem;
+            background: #f8fafc;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-style: italic;
+        }
+
+        .edit-instructions {
+            margin-bottom: 1.5rem;
+        }
+
+        .edit-instructions h4 {
+            margin: 0 0 1rem 0;
+            color: #2d3748;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        #editPrompt {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 120px;
+            transition: border-color 0.2s ease;
+        }
+
+        #editPrompt:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .edit-examples {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #f0f4f8;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .edit-examples p {
+            margin: 0 0 0.5rem 0;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .edit-examples ul {
+            margin: 0;
+            padding-left: 1.5rem;
+        }
+
+        .edit-examples li {
+            margin-bottom: 0.5rem;
+            color: #4a5568;
+        }
+
+        .edit-modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-bottom: 1.5rem;
+        }
+
+        .edit-preview {
+            border-top: 1px solid #e2e8f0;
+            padding-top: 1.5rem;
+        }
+
+        .edit-preview h4 {
+            margin: 0 0 1rem 0;
+            color: #2d3748;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .preview-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+
         @media (max-width: 600px) {
             .container {
                 margin: 1rem auto;
@@ -431,6 +622,40 @@
                 width: 60px;
                 height: 60px;
                 font-size: 1.5rem;
+            }
+
+            /* Mobile Modal Styles */
+            .edit-modal {
+                width: 95%;
+                max-height: 95vh;
+                margin: 1rem;
+            }
+
+            .edit-modal-header {
+                padding: 1rem;
+            }
+
+            .edit-modal-header h3 {
+                font-size: 1.1rem;
+            }
+
+            .edit-modal-content {
+                padding: 1rem;
+            }
+
+            .edit-modal-actions {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .preview-actions {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            #editPrompt {
+                min-height: 100px;
+                font-size: 0.9rem;
             }
         }
     </style>
@@ -474,6 +699,7 @@
         <!-- Action Buttons -->
         <div class="action-buttons">
             <button class="action-btn reject-btn" id="rejectBtn">✖</button>
+            <button class="action-btn edit-btn" id="editBtn">✏️</button>
             <button class="action-btn approve-btn" id="approveBtn">✓</button>
         </div>
 
@@ -592,10 +818,51 @@
                 // Button listeners
                 document.getElementById('approveBtn').addEventListener('click', () => this.approveAd());
                 document.getElementById('rejectBtn').addEventListener('click', () => this.rejectAd());
+                document.getElementById('editBtn').addEventListener('click', () => this.openEditModal());
                 document.getElementById('downloadBtn').addEventListener('click', () => this.downloadResults());
+
+                // Modal listeners
+                document.getElementById('closeModalBtn').addEventListener('click', () => this.closeEditModal());
+                document.getElementById('cancelEditBtn').addEventListener('click', () => this.closeEditModal());
+                document.getElementById('applyEditBtn').addEventListener('click', () => this.processAIEdit());
+                document.getElementById('acceptChangesBtn').addEventListener('click', () => this.acceptChanges());
+                document.getElementById('rejectChangesBtn').addEventListener('click', () => this.rejectChanges());
+                
+                // Prevent keyboard events from textarea from bubbling up
+                document.getElementById('editPrompt').addEventListener('keydown', (e) => {
+                    e.stopPropagation();
+                });
+                document.getElementById('editPrompt').addEventListener('keyup', (e) => {
+                    e.stopPropagation();
+                });
+                document.getElementById('editPrompt').addEventListener('keypress', (e) => {
+                    e.stopPropagation();
+                });
+                
+                // Close modal when clicking outside
+                document.getElementById('editModalOverlay').addEventListener('click', (e) => {
+                    if (e.target.id === 'editModalOverlay') {
+                        this.closeEditModal();
+                    }
+                });
 
                 // Keyboard listeners
                 document.addEventListener('keydown', (e) => {
+                    // Check if modal is open
+                    const modal = document.getElementById('editModalOverlay');
+                    const modalOpen = modal && modal.style.display === 'flex';
+                    
+                    // Close modal with Escape key
+                    if (e.key === 'Escape' && modalOpen) {
+                        this.closeEditModal();
+                        return;
+                    }
+                    
+                    // Don't process other shortcuts when modal is open
+                    if (modalOpen) {
+                        return;
+                    }
+                    
                     if (e.key === 'ArrowRight' || e.key === ' ') this.approveAd();
                     if (e.key === 'ArrowLeft' || e.key === 'Backspace') this.rejectAd();
                 });
@@ -1044,6 +1311,201 @@
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
             }
+
+            // Edit Modal Functions
+            openEditModal() {
+                console.log('🔍 Opening edit modal...');
+                const modal = document.getElementById('editModalOverlay');
+                if (modal) {
+                    this.showCurrentAdInModal();
+                    modal.style.display = 'flex';
+                    console.log('✅ Edit modal opened successfully');
+                } else {
+                    console.error('❌ Edit modal not found');
+                }
+            }
+
+            showCurrentAdInModal() {
+                const currentAd = this.ads[this.currentIndex];
+                const previewContainer = document.getElementById('currentAdPreview');
+                
+                if (currentAd && previewContainer) {
+                    const adScore = currentAd.score ? currentAd.score.toFixed(1) : '8.0';
+                    const adPlatform = currentAd.platform || 'facebook';
+                    const adId = currentAd.id || Math.floor(Math.random() * 1000);
+                    const hasImage = currentAd.imageUrl && currentAd.imageUrl !== null;
+                    
+                    if (hasImage && currentAd.type === 'image_ad') {
+                        // Show image ad
+                        previewContainer.innerHTML = `
+                            <div style="text-align: center;">
+                                <div style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">Ad #${adId}</div>
+                                <div style="margin-bottom: 1rem;">
+                                    <img src="${currentAd.imageUrl}" alt="Ad Image" style="max-width: 100%; max-height: 200px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: #f8fafc; border-radius: 8px;">
+                                    <span style="font-weight: 600; color: #667eea;">Score: ${adScore}/10</span>
+                                    <span style="background: #667eea; color: white; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.8rem; text-transform: uppercase;">${adPlatform}</span>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        // Show text ad
+                        const adText = currentAd.text || currentAd.headline || 'No content available';
+                        previewContainer.innerHTML = `
+                            <div style="text-align: center; padding: 1rem;">
+                                <div style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">Ad #${adId}</div>
+                                <div style="font-size: 1.1rem; color: #2d3748; margin-bottom: 1rem; line-height: 1.5;">${adText}</div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: #f8fafc; border-radius: 8px;">
+                                    <span style="font-weight: 600; color: #667eea;">Score: ${adScore}/10</span>
+                                    <span style="background: #667eea; color: white; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.8rem; text-transform: uppercase;">${adPlatform}</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+            }
+
+            closeEditModal() {
+                console.log('🔍 Closing edit modal...');
+                const modal = document.getElementById('editModalOverlay');
+                if (modal) {
+                    modal.style.display = 'none';
+                    this.resetModalState();
+                    console.log('✅ Edit modal closed successfully');
+                } else {
+                    console.error('❌ Edit modal not found');
+                }
+            }
+
+            async processAIEdit() {
+                const prompt = document.getElementById('editPrompt').value.trim();
+                if (!prompt) {
+                    alert('Please enter a prompt describing what you want to change.');
+                    return;
+                }
+
+                const currentAd = this.ads[this.currentIndex];
+                const editBtnText = document.getElementById('editBtnText');
+                const editBtnLoader = document.getElementById('editBtnLoader');
+                
+                // Show loading state
+                editBtnText.style.display = 'none';
+                editBtnLoader.style.display = 'inline';
+                
+                try {
+                    console.log('🤖 Processing AI edit with prompt:', prompt);
+                    
+                    const response = await fetch('/api/edit-ad', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            originalAd: currentAd,
+                            prompt: prompt,
+                            adId: currentAd.id
+                        })
+                    });
+
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        this.showEditPreview(result.editedAd);
+                    } else {
+                        alert('AI editing failed: ' + result.error);
+                    }
+                } catch (error) {
+                    console.error('❌ AI edit failed:', error);
+                    alert('Failed to process AI edit. Please try again.');
+                } finally {
+                    // Reset button state
+                    editBtnText.style.display = 'inline';
+                    editBtnLoader.style.display = 'none';
+                }
+            }
+
+            showEditPreview(editedAd) {
+                const previewSection = document.getElementById('editPreview');
+                const previewContainer = document.getElementById('editedAdPreview');
+                
+                if (editedAd && previewContainer) {
+                    const hasImage = editedAd.imageUrl && editedAd.imageUrl !== null;
+                    const adScore = editedAd.score ? editedAd.score.toFixed(1) : '8.0';
+                    const adPlatform = editedAd.platform || 'facebook';
+                    const adId = editedAd.id || Math.floor(Math.random() * 1000);
+                    
+                    if (hasImage && editedAd.type === 'image_ad') {
+                        previewContainer.innerHTML = `
+                            <div style="text-align: center;">
+                                <div style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">Edited Ad #${adId}</div>
+                                <div style="margin-bottom: 1rem;">
+                                    <img src="${editedAd.imageUrl}" alt="Edited Ad Image" style="max-width: 100%; max-height: 200px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: #f0f8ff; border-radius: 8px;">
+                                    <span style="font-weight: 600; color: #667eea;">Score: ${adScore}/10</span>
+                                    <span style="background: #667eea; color: white; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.8rem; text-transform: uppercase;">${adPlatform}</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    previewSection.style.display = 'block';
+                    this.editedAdData = editedAd;
+                }
+            }
+
+            acceptChanges() {
+                console.log('✅ Accepting AI changes...');
+                if (this.editedAdData) {
+                    // Replace the current ad with the edited version
+                    this.ads[this.currentIndex] = this.editedAdData;
+                    
+                    // Update sessionStorage with edited ads
+                    sessionStorage.setItem('generatedAds', JSON.stringify(this.ads));
+                    
+                    // Re-render the current card with the updated ad
+                    this.renderCurrentCard();
+                    
+                    // Close the modal
+                    this.closeEditModal();
+                    
+                    // Reset the modal state
+                    this.resetModalState();
+                    
+                    console.log('✅ Changes accepted and applied to main card');
+                } else {
+                    console.error('❌ No edited ad data to accept');
+                }
+            }
+
+            rejectChanges() {
+                console.log('❌ Rejecting AI changes...');
+                
+                // Hide the preview section
+                document.getElementById('editPreview').style.display = 'none';
+                
+                // Clear the edited ad data
+                this.editedAdData = null;
+                
+                // Clear the prompt input
+                document.getElementById('editPrompt').value = '';
+                
+                console.log('❌ Changes rejected, returning to edit mode');
+            }
+
+            resetModalState() {
+                // Hide preview section
+                document.getElementById('editPreview').style.display = 'none';
+                
+                // Clear the prompt input
+                document.getElementById('editPrompt').value = '';
+                
+                // Clear edited ad data
+                this.editedAdData = null;
+                
+                // Reset button states
+                document.getElementById('editBtnText').style.display = 'inline';
+                document.getElementById('editBtnLoader').style.display = 'none';
+            }
         }
 
         // Initialize when page loads
@@ -1051,5 +1513,49 @@
             new TinderAds();
         });
     </script>
+
+    <!-- Edit Ad Modal -->
+    <div class="edit-modal-overlay" id="editModalOverlay" style="display: none;">
+        <div class="edit-modal">
+            <div class="edit-modal-header">
+                <h3>✏️ Edit Ad with AI</h3>
+                <button class="close-modal-btn" id="closeModalBtn">✖</button>
+            </div>
+            <div class="edit-modal-content">
+                <div class="current-ad-preview">
+                    <h4>Current Ad:</h4>
+                    <div class="ad-preview-card" id="currentAdPreview">
+                        <!-- Current ad will be displayed here -->
+                    </div>
+                </div>
+                <div class="edit-instructions">
+                    <h4>Tell AI what to change:</h4>
+                    <textarea 
+                        id="editPrompt" 
+                        placeholder="Example: Make the text more exciting, change colors to blue theme, add urgency words like 'limited time', make it sound more professional, regenerate the image with different style..."
+                        rows="5"
+                    ></textarea>
+                </div>
+                <div class="edit-modal-actions">
+                    <button class="btn-secondary" id="cancelEditBtn">Cancel</button>
+                    <button class="btn-primary" id="applyEditBtn">
+                        <span id="editBtnText">🤖 Apply AI Changes</span>
+                        <span id="editBtnLoader" style="display: none;">⏳ Processing...</span>
+                    </button>
+                </div>
+                <div class="edit-preview" id="editPreview" style="display: none;">
+                    <h4>Preview of Changes:</h4>
+                    <div class="ad-preview-card" id="editedAdPreview">
+                        <!-- Edited ad preview will be displayed here -->
+                    </div>
+                    <div class="preview-actions">
+                        <button class="btn-secondary" id="rejectChangesBtn">❌ Reject Changes</button>
+                        <button class="btn-primary" id="acceptChangesBtn">✅ Accept Changes</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
