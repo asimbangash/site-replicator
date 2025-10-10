@@ -810,7 +810,7 @@ app.use("/:siteName", async (req, res, next) => {
       "clone-website",
       "preview",
       "site",
-      "domains"
+      "domains",
       "create-ads",
       "approve-ads",
     ].includes(siteName)
