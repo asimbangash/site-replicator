@@ -669,6 +669,7 @@
                 <a href="/editor" class="menu-btn">✏️ Editor</a>
                 <a href="/create-ads" class="menu-btn">🎯 Create Ads</a>
                 <a href="/approve-ads" class="menu-btn active">👍 Approve</a>
+                <a href="/domains" class="menu-btn ">🌐 Publish</a>
             </nav>
         </div>
     </div>
@@ -710,7 +711,7 @@
             </div>
             <div class="completion-actions">
                 <a href="/create-ads" class="btn btn-primary">Create More Ads</a>
-                <button class="btn btn-secondary" id="downloadBtn">Download Results</button>
+                <p  id="downloadBtn"></p>
             </div>
         </div>
 
@@ -1127,7 +1128,7 @@
                         <input type="text" id="campaignNameInput" placeholder="Campaign Name (optional)" 
                                style="width: 100%; padding: 0.75rem; border: 1px solid #ced4da; border-radius: 8px; font-size: 0.9rem; box-sizing: border-box; transition: border-color 0.2s ease; color: #6c757d;">
                     </div>
-                    <div style="display: flex; gap: 1rem; align-items: center;">
+                    <div style="display: flex; gap: 1rem; align-items: center; justify-content: center;">
                         <button id="driveSyncBtn" style="
                             background: linear-gradient(135deg, #4285f4, #34a853);
                             color: white;
@@ -1139,23 +1140,14 @@
                             font-size: 0.9rem;
                             display: flex;
                             align-items: center;
+                            justify-content: center;
                             gap: 0.5rem;
                             transition: all 0.3s ease;
                         ">
                             <span>📤</span>
                             Sync ${this.approved.length} Ads to Drive
                         </button>
-                        <button id="testConnectionBtn" style="
-                            background: #6c757d;
-                            color: white;
-                            border: none;
-                            padding: 0.75rem 1rem;
-                            border-radius: 8px;
-                            font-size: 0.8rem;
-                            cursor: pointer;
-                        ">
-                            Test Connection
-                        </button>
+                       
                     </div>
                     <div id="syncStatus" style="margin-top: 1rem; font-size: 0.9rem;"></div>
                 `;
