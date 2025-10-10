@@ -692,6 +692,8 @@ app.use("/:siteName", async (req, res, next) => {
       "clone-website",
       "preview",
       "site",
+      "create-ads",
+      "approve-ads",
     ].includes(siteName)
   ) {
     return next();
