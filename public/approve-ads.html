@@ -604,24 +604,144 @@
             margin-top: 1rem;
         }
 
-        @media (max-width: 600px) {
+        /* Tablet Responsive Styles (768px - 1024px) */
+        @media (max-width: 1024px) and (min-width: 769px) {
+            .header h1 {
+                font-size: 1.6rem;
+            }
+
+            .main-menu {
+                gap: 0.75rem;
+            }
+
+            .menu-btn {
+                padding: 0.45rem 0.85rem;
+                font-size: 0.9rem;
+            }
+
             .container {
-                margin: 1rem auto;
-                padding: 0 0.5rem;
+                max-width: 550px;
+            }
+
+            .card-stack {
+                height: 550px;
+            }
+
+            .action-btn {
+                width: 65px;
+                height: 65px;
+                font-size: 1.8rem;
+            }
+        }
+
+        /* Mobile Responsive Styles (up to 768px) */
+        @media (max-width: 768px) {
+            body {
+                padding: 0;
+            }
+
+            /* Header Navigation */
+            .header {
+                padding: 0.75rem 1rem;
+            }
+
+            .header-content {
+                flex-direction: column;
+                gap: 0.75rem;
+                align-items: stretch;
+            }
+
+            .header h1 {
+                font-size: 1.3rem;
+                text-align: center;
+            }
+
+            .main-menu {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.4rem;
+                width: 100%;
+            }
+
+            .menu-btn {
+                padding: 0.5rem 0.4rem;
+                font-size: 0.75rem;
+                text-align: center;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            /* Container & Cards */
+            .container {
+                margin: 1rem;
+                padding: 0 0.75rem;
+            }
+
+            .progress-bar {
+                padding: 1.2rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .progress-text {
+                font-size: 1rem;
+            }
+
+            .stats {
+                font-size: 0.85rem;
+            }
+
+            .card-stack {
+                height: 500px;
+                margin-bottom: 1.5rem;
             }
 
             .ad-card {
                 padding: 1.5rem;
             }
 
+            .ad-text {
+                font-size: 1.1rem;
+            }
+
             .action-buttons {
                 gap: 1rem;
+                margin-bottom: 1.5rem;
             }
 
             .action-btn {
                 width: 60px;
                 height: 60px;
                 font-size: 1.5rem;
+            }
+
+            .swipe-hints {
+                font-size: 2.5rem;
+            }
+
+            .swipe-left {
+                left: 1rem;
+            }
+
+            .swipe-right {
+                right: 1rem;
+            }
+
+            /* Completion Screen */
+            .completion-screen {
+                padding: 2rem 1.5rem;
+            }
+
+            .completion-screen h2 {
+                font-size: 1.6rem;
+            }
+
+            .completion-stats {
+                font-size: 1rem;
+            }
+
+            .completion-actions {
+                flex-direction: column;
             }
 
             /* Mobile Modal Styles */
@@ -648,14 +768,95 @@
                 gap: 0.5rem;
             }
 
+            .edit-modal-actions .btn {
+                width: 100%;
+            }
+
             .preview-actions {
                 flex-direction: column;
                 gap: 0.5rem;
             }
 
+            .preview-actions .btn {
+                width: 100%;
+            }
+
             #editPrompt {
                 min-height: 100px;
                 font-size: 0.9rem;
+            }
+
+            /* No Ads Screen */
+            .no-ads div {
+                padding: 2rem 1.5rem !important;
+            }
+
+            .no-ads h3 {
+                font-size: 1.3rem !important;
+            }
+
+            .no-ads p {
+                font-size: 1rem !important;
+            }
+        }
+
+        /* Extra small devices (phones in portrait, less than 400px) */
+        @media (max-width: 400px) {
+            .header h1 {
+                font-size: 1.1rem;
+            }
+
+            .main-menu {
+                gap: 0.3rem;
+            }
+
+            .menu-btn {
+                padding: 0.45rem 0.3rem;
+                font-size: 0.7rem;
+            }
+
+            .container {
+                margin: 0.75rem;
+                padding: 0 0.5rem;
+            }
+
+            .progress-bar {
+                padding: 1rem;
+            }
+
+            .card-stack {
+                height: 450px;
+            }
+
+            .ad-card {
+                padding: 1.2rem;
+            }
+
+            .ad-text {
+                font-size: 1rem;
+            }
+
+            .action-buttons {
+                gap: 0.75rem;
+            }
+
+            .action-btn {
+                width: 55px;
+                height: 55px;
+                font-size: 1.3rem;
+            }
+
+            .completion-screen {
+                padding: 1.5rem 1rem;
+            }
+
+            .completion-screen h2 {
+                font-size: 1.4rem;
+            }
+
+            .btn {
+                font-size: 0.9rem;
+                padding: 0.8rem 1.5rem;
             }
         }
     </style>

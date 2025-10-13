@@ -25,6 +25,7 @@ Open http://localhost:3000/editor
 ## API Endpoints
 
 ### Clone Website
+
 ```bash
 POST /clone-website
 Content-Type: application/json
@@ -36,21 +37,25 @@ Content-Type: application/json
 ```
 
 ### List Cloned Sites
+
 ```bash
 GET /cloned-sites
 ```
 
 ### Preview Site
+
 ```bash
 GET /preview/:siteId
 ```
 
 ### Edit Site
+
 ```bash
 GET /editor
 ```
 
 ### Domain Management
+
 ```bash
 # Add custom domain
 POST /api/add-domain
@@ -69,6 +74,7 @@ GET /domains
 ```
 
 ### AI Ad Generation
+
 ```bash
 # Create ads from documents
 POST /api/create-ads

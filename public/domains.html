@@ -120,8 +120,17 @@
             transform: none;
         }
 
-        .btn-secondary {
+        /* .btn-secondary {
             background: #6c757d;
+        } */
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e0;
         }
 
         .btn-success {
@@ -374,20 +383,348 @@
             line-height: 1.5;
         }
 
+        /* Tablet Responsive Styles (768px - 1024px) */
+        @media (max-width: 1024px) and (min-width: 769px) {
+            .headertop {
+                padding: 0.85rem 1.5rem;
+            }
+
+            .headertop h1 {
+                font-size: 1.6rem;
+            }
+
+            .headertop nav {
+                gap: 0.75rem;
+            }
+
+            .btn, .menu-btn {
+                padding: 0.45rem 0.85rem;
+                font-size: 0.9rem;
+            }
+
+            .container {
+                margin: 30px auto;
+            }
+
+            .header h1 {
+                font-size: 2.2rem;
+            }
+
+            .header p {
+                font-size: 1rem;
+            }
+
+            .content {
+                padding: 25px;
+            }
+
+            .summary-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Mobile Responsive Styles (up to 768px) */
         @media (max-width: 768px) {
+            body {
+                padding: 0;
+            }
+
+            /* Top Header Navigation */
+            .headertop {
+                padding: 0.75rem 1rem;
+                margin-bottom: 20px;
+            }
+
+            .headertop > div {
+                flex-direction: column;
+                gap: 0.75rem;
+                align-items: stretch !important;
+            }
+
+            .headertop h1 {
+                font-size: 1.3rem;
+                text-align: center;
+            }
+
+            .headertop nav {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.4rem;
+                width: 100%;
+            }
+
+            .btn-secondary, .menu-btn {
+                padding: 0.5rem 0.4rem;
+                font-size: 0.75rem;
+                text-align: center;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            /* Container */
+            .container {
+                margin: 1rem;
+                border-radius: 12px;
+            }
+
+            /* Header */
+            .header {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 1.6rem;
+                margin-bottom: 8px;
+            }
+
+            .header p {
+                font-size: 0.95rem;
+            }
+
+            /* Content */
+            .content {
+                padding: 20px;
+            }
+
+            /* Instructions */
+            .instructions {
+                padding: 15px;
+                margin-bottom: 20px;
+            }
+
+            .instructions h3 {
+                font-size: 1.1rem;
+                margin-bottom: 12px;
+            }
+
+            .instructions ol {
+                margin-left: 15px;
+            }
+
+            .instructions li {
+                font-size: 0.9rem;
+                margin-bottom: 6px;
+            }
+
+            /* Summary Cards */
+            .summary-cards {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+                margin-bottom: 20px;
+            }
+
+            .summary-card {
+                padding: 15px;
+            }
+
+            .summary-card h3 {
+                font-size: 1.6rem;
+            }
+
+            .summary-card p {
+                font-size: 0.85rem;
+            }
+
+            /* Add Domain Section */
+            .add-domain-section {
+                padding: 18px;
+                margin-bottom: 20px;
+            }
+
+            .add-domain-section h2 {
+                font-size: 1.3rem;
+                margin-bottom: 15px;
+            }
+
             .form-row {
                 grid-template-columns: 1fr;
+                gap: 15px;
             }
-            
+
+            .form-group {
+                margin-bottom: 15px;
+            }
+
+            .form-group label {
+                font-size: 0.95rem;
+                margin-bottom: 6px;
+            }
+
+            .form-group input, .form-group select {
+                padding: 10px 12px;
+                font-size: 0.95rem;
+            }
+
+            .btn {
+                padding: 10px 20px;
+                font-size: 0.95rem;
+                width: 100%;
+            }
+
+            /* Domains List */
+            .domains-list h2 {
+                font-size: 1.3rem;
+                margin-bottom: 15px;
+            }
+
+            .domain-card {
+                padding: 15px;
+                margin-bottom: 12px;
+            }
+
             .domain-header {
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 10px;
+                margin-bottom: 12px;
             }
-            
+
+            .domain-name {
+                font-size: 1.1rem;
+                word-break: break-all;
+            }
+
+            .status-badge {
+                font-size: 0.75rem;
+                padding: 4px 10px;
+            }
+
+            .domain-details {
+                grid-template-columns: 1fr;
+                gap: 10px;
+                margin-bottom: 12px;
+            }
+
+            .detail-item {
+                font-size: 0.9rem;
+            }
+
             .domain-actions {
                 width: 100%;
-                justify-content: flex-start;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .btn-small {
+                width: 100%;
+                padding: 8px 12px;
+                font-size: 0.85rem;
+                text-align: center;
+            }
+
+            /* Alert */
+            .alert {
+                padding: 12px;
+                font-size: 0.9rem;
+                margin-bottom: 15px;
+            }
+
+            /* Empty State */
+            .empty-state {
+                padding: 30px 20px;
+            }
+
+            .empty-state h3 {
+                font-size: 1.2rem;
+            }
+
+            .empty-state p {
+                font-size: 0.9rem;
+            }
+        }
+
+        /* Extra small devices (phones in portrait, less than 400px) */
+        @media (max-width: 400px) {
+            .headertop {
+                padding: 0.65rem 0.75rem;
+            }
+
+            .headertop h1 {
+                font-size: 1.1rem;
+            }
+
+            .headertop nav {
+                gap: 0.3rem;
+            }
+
+            .btn-secondary, .menu-btn {
+                padding: 0.45rem 0.3rem;
+                font-size: 0.7rem;
+            }
+
+            .container {
+                margin: 0.75rem;
+            }
+
+            .header {
+                padding: 15px;
+            }
+
+            .header h1 {
+                font-size: 1.4rem;
+            }
+
+            .header p {
+                font-size: 0.88rem;
+            }
+
+            .content {
+                padding: 15px;
+            }
+
+            .instructions {
+                padding: 12px;
+            }
+
+            .instructions h3 {
+                font-size: 1rem;
+            }
+
+            .instructions li {
+                font-size: 0.85rem;
+            }
+
+            .summary-cards {
+                gap: 10px;
+            }
+
+            .summary-card {
+                padding: 12px;
+            }
+
+            .summary-card h3 {
+                font-size: 1.4rem;
+            }
+
+            .summary-card p {
+                font-size: 0.8rem;
+            }
+
+            .add-domain-section {
+                padding: 15px;
+            }
+
+            .add-domain-section h2 {
+                font-size: 1.2rem;
+            }
+
+            .form-group input, .form-group select {
+                padding: 9px 10px;
+                font-size: 0.9rem;
+            }
+
+            .btn {
+                padding: 9px 18px;
+                font-size: 0.9rem;
+            }
+
+            .domain-card {
+                padding: 12px;
+            }
+
+            .domain-name {
+                font-size: 1rem;
             }
         }
     </style>

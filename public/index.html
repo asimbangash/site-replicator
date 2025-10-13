@@ -48,6 +48,7 @@
             background: #667eea;
             color: white;
             border-color: #667eea;
+            
         }
 
         .container {
@@ -59,6 +60,7 @@
             padding: 2.5rem;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
             text-align: center;
+            margin-top: 80px;
         }
 
         h1 {
@@ -230,13 +232,173 @@
             display: none;
         }
 
-        @media (max-width: 768px) {
+
+
+        /* Tablet Responsive Styles (768px - 1024px) */
+        @media (max-width: 1024px) and (min-width: 769px) {
+            .main-menu {
+                gap: 0.75rem;
+            }
+
+            .menu-btn {
+                padding: 0.45rem 0.85rem;
+                font-size: 0.9rem;
+            }
+
             .container {
-                padding: 1.5rem;
+                width: 95%;
+                padding: 2rem;
             }
 
             h1 {
-                font-size: 2rem;
+                font-size: 2.2rem;
+            }
+        }
+
+        /* Mobile Responsive Styles (up to 768px) */
+        @media (max-width: 768px) {
+            body {
+                padding: 0.5rem;
+            }
+
+            /* Navigation Menu - Mobile */
+            .main-menu {
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                flex-wrap: wrap;
+                gap: 0.4rem;
+                justify-content: center;
+                background: rgba(255, 255, 255, 0.98);
+                padding: 0.5rem;
+                border-radius: 12px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            }
+
+            .menu-btn {
+                padding: 0.4rem 0.7rem;
+                font-size: 0.75rem;
+                flex: 0 1 auto;
+                white-space: nowrap;
+            }
+
+            /* Container adjustments */
+            .container {
+                width: 100%;
+                padding: 1.2rem;
+                margin-top: 100px;
+                border-radius: 10px;
+            }
+
+            /* Typography */
+            h1 {
+                font-size: 1.6rem;
+                margin-bottom: 0.8rem;
+            }
+
+            .description {
+                font-size: 0.95rem;
+                margin-bottom: 1.5rem;
+                line-height: 1.4;
+            }
+
+            /* Form elements */
+            .url-form {
+                gap: 0.8rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .url-input {
+                padding: 0.7rem 0.8rem;
+                font-size: 0.95rem;
+            }
+
+            label {
+                font-size: 0.9rem;
+            }
+
+            .btn {
+                padding: 0.75rem 1.2rem;
+                font-size: 0.95rem;
+                width: 100%;
+            }
+
+            /* Examples section */
+            .examples {
+                margin-top: 1.5rem;
+                padding-top: 1.5rem;
+            }
+
+            .examples h3 {
+                font-size: 1rem;
+                margin-bottom: 0.8rem;
+            }
+
+            .example-list {
+                gap: 0.4rem;
+                flex-direction: column;
+            }
+
+            .example-item {
+                padding: 0.6rem 0.8rem;
+                font-size: 0.9rem;
+                text-align: center;
+                width: 100%;
+            }
+
+            /* Loading overlay */
+            .status-message {
+                font-size: 1rem;
+                max-width: 90%;
+                padding: 0 1rem;
+            }
+
+            .spinner {
+                width: 35px;
+                height: 35px;
+            }
+
+            /* Error message */
+            .error-message {
+                font-size: 0.9rem;
+                padding: 0.8rem;
+            }
+        }
+
+        /* Extra small devices (phones in portrait, less than 400px) */
+        @media (max-width: 400px) {
+            .container {
+                padding: 1rem;
+                margin-top: 110px;
+            }
+
+            h1 {
+                font-size: 1.4rem;
+            }
+
+            .description {
+                font-size: 0.88rem;
+            }
+
+            .menu-btn {
+                padding: 0.35rem 0.55rem;
+                font-size: 0.7rem;
+            }
+
+            .url-input {
+                font-size: 0.9rem;
+                padding: 0.65rem 0.75rem;
+            }
+
+            .btn {
+                font-size: 0.9rem;
+                padding: 0.7rem 1rem;
+            }
+
+            .example-item {
+                font-size: 0.85rem;
+                padding: 0.5rem 0.7rem;
             }
         }
     </style>
