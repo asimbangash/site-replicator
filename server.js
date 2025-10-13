@@ -60,9 +60,7 @@ const upload = multer({
     } else {
       cb(
         new Error(
-          `File type ${extension} not allowed. Allowed types: ${allowedTypes.join(
-            ", "
-          )}`
+          `Unsupported file format: ${extension}. Please use JPG, JPEG, PNG, GIF for images.`
         )
       );
     }

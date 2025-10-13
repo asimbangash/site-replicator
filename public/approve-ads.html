@@ -1233,6 +1233,9 @@
                 } else {
                     this.nextCard();
                 }
+                
+                // Update counters immediately
+                this.updateProgress();
             }
 
             rejectAd() {
@@ -1250,6 +1253,9 @@
                 } else {
                     this.nextCard();
                 }
+                
+                // Update counters immediately
+                this.updateProgress();
             }
 
             nextCard() {
@@ -1260,8 +1266,6 @@
                 } else {
                     this.renderCurrentCard();
                 }
-                
-                this.updateProgress();
             }
 
             updateProgress() {

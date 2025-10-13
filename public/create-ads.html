@@ -128,6 +128,16 @@
             color: #28a745;
             border: 1px solid rgba(40, 167, 69, 0.2);
         }
+        
+        .error-message {
+            background: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(220, 53, 69, 0.2);
+            font-size: 14px;
+        }
 
         .create-btn {
             width: 100%;
@@ -573,6 +583,13 @@
                     body: formData
                 });
                 
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    // Handle non-JSON response (like HTML error pages)
+                    throw new Error('Unsupported file format. Please use JPG, JPEG, PNG, GIF for images.');
+                }
+                
                 const result = await response.json();
                 
                 if (result.success) {
@@ -590,11 +607,26 @@
                 }
                 
             } catch (error) {
-                alert('❌ Error creating ads: ' + error.message + '\n\nPlease check your inputs and try again.');
-                
                 // Show form again
                 document.getElementById('createAdsForm').style.display = 'block';
                 document.getElementById('loading').style.display = 'none';
+                
+                // Create error message element
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.innerHTML = `<strong>❌ Error:</strong> ${error.message}`;
+                
+                // Add the error message below the reference image input
+                const imageStatusElement = document.getElementById('imageStatus');
+                const imageInputGroup = imageStatusElement.parentNode;
+                imageInputGroup.appendChild(errorDiv);
+                
+                // Auto-remove after 10 seconds
+                setTimeout(() => {
+                    if (errorDiv.parentNode === imageInputGroup) {
+                        imageInputGroup.removeChild(errorDiv);
+                    }
+                }, 10000);
             }
         }
 
