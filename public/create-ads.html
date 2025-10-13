@@ -554,15 +554,60 @@
         async function handleSubmit(e) {
             e.preventDefault();
             
+            // First validate file types before proceeding
+            let hasError = false;
+            
+            // Clear any existing error messages
+            const errorMessages = document.querySelectorAll('.error-message');
+            errorMessages.forEach(msg => msg.parentNode.removeChild(msg));
+            
+            // Check research document type
+            const researchDoc = document.getElementById('researchDoc').files[0];
+            if (researchDoc) {
+                const extension = researchDoc.name.split('.').pop().toLowerCase();
+                const allowedDocExtensions = ['pdf', 'docx', 'doc', 'txt'];
+                
+                if (!allowedDocExtensions.includes(extension)) {
+                    // Show error message below research document input
+                    const docInputGroup = document.getElementById('researchStatus').parentNode;
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'error-message';
+                    errorDiv.innerHTML = `<strong>❌ Error:</strong> Unsupported document format: .${extension}. Please use PDF, DOCX, DOC, or TXT.`;
+                    docInputGroup.appendChild(errorDiv);
+                    hasError = true;
+                }
+            }
+            
+            // Check reference image type
+            const referenceImage = document.getElementById('referenceImage').files[0];
+            if (referenceImage) {
+                const extension = referenceImage.name.split('.').pop().toLowerCase();
+                const allowedImageExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+                
+                if (!allowedImageExtensions.includes(extension)) {
+                    // Show error message below reference image input
+                    const imageInputGroup = document.getElementById('imageStatus').parentNode;
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'error-message';
+                    errorDiv.innerHTML = `<strong>❌ Error:</strong> Unsupported image format: .${extension}. Please use JPG, JPEG, PNG, or GIF.`;
+                    imageInputGroup.appendChild(errorDiv);
+                    hasError = true;
+                }
+            }
+            
+            // Don't proceed with API call if there are errors
+            if (hasError) {
+                return;
+            }
+            
+            // If no errors, proceed with form submission
             const formData = new FormData();
             
-            // Only append files if they exist (optional fields)
-            const researchDoc = document.getElementById('researchDoc').files[0];
+            // Append files if they exist
             if (researchDoc) {
                 formData.append('researchDoc', researchDoc);
             }
             
-            const referenceImage = document.getElementById('referenceImage').files[0];
             if (referenceImage) {
                 formData.append('referenceImage', referenceImage);
             }
