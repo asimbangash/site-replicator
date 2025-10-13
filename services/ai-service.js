@@ -23,7 +23,7 @@ function initializeGemini() {
 // Initialize OpenRouter (BEST OPTION - Multiple AI models + Image generation!)
 function initializeOpenRouter() {
   if (!process.env.OPENROUTER_API_KEY) {
-    console.warn("OPENROUTER_API_KEY not found in environment variables");
+    console.warn("OPENROUTER_API_KEY not found in environment variable");
     return null;
   }
 
