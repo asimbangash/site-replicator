@@ -203,6 +203,181 @@
             font-weight: 600;
             margin-right: 0.5rem;
         }
+
+        /* Tablet Responsive Styles (768px - 1024px) */
+        @media (max-width: 1024px) and (min-width: 769px) {
+            .header h1 {
+                font-size: 1.6rem;
+            }
+
+            .main-menu {
+                gap: 0.75rem;
+            }
+
+            .menu-btn {
+                padding: 0.45rem 0.85rem;
+                font-size: 0.9rem;
+            }
+
+            .container {
+                margin: 1.5rem auto;
+                padding: 2rem;
+            }
+
+            .page-title {
+                font-size: 2rem;
+            }
+        }
+
+        /* Mobile Responsive Styles (up to 768px) */
+        @media (max-width: 768px) {
+            body {
+                padding: 0;
+            }
+
+            /* Header Navigation */
+            .header {
+                padding: 0.75rem 1rem;
+            }
+
+            .header-content {
+                flex-direction: column;
+                gap: 0.75rem;
+                align-items: stretch;
+            }
+
+            .header h1 {
+                font-size: 1.3rem;
+                text-align: center;
+            }
+
+            .main-menu {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.4rem;
+                width: 100%;
+            }
+
+            .menu-btn {
+                padding: 0.5rem 0.4rem;
+                font-size: 0.75rem;
+                text-align: center;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            /* Container */
+            .container {
+                max-width: 100%;
+                margin: 1rem;
+                padding: 1.2rem;
+                border-radius: 10px;
+            }
+
+            /* Typography */
+            .page-title {
+                font-size: 1.5rem;
+                margin-bottom: 0.75rem;
+            }
+
+            .page-description {
+                font-size: 0.95rem;
+                margin-bottom: 2rem;
+                line-height: 1.4;
+            }
+
+            /* Form elements */
+            .input-group {
+                margin-bottom: 1.5rem;
+            }
+
+            .input-group label {
+                font-size: 1rem;
+                margin-bottom: 0.6rem;
+            }
+
+            .form-input, .form-select {
+                padding: 0.8rem;
+                font-size: 0.95rem;
+            }
+
+            .step-number {
+                width: 22px;
+                height: 22px;
+                line-height: 22px;
+                font-size: 0.85rem;
+            }
+
+            /* File status */
+            .file-status {
+                font-size: 0.85rem;
+                padding: 0.4rem;
+            }
+
+            /* Button */
+            .create-btn {
+                padding: 1rem;
+                font-size: 1rem;
+                margin-top: 1rem;
+            }
+
+            /* Loading state */
+            .loading h3 {
+                font-size: 1.1rem;
+            }
+
+            .loading p {
+                font-size: 0.9rem;
+            }
+
+            .progress-bar {
+                height: 6px;
+            }
+        }
+
+        /* Extra small devices (phones in portrait, less than 400px) */
+        @media (max-width: 400px) {
+            .header h1 {
+                font-size: 1.1rem;
+            }
+
+            .main-menu {
+                gap: 0.3rem;
+            }
+
+            .menu-btn {
+                padding: 0.45rem 0.3rem;
+                font-size: 0.7rem;
+            }
+
+            .container {
+                margin: 0.75rem;
+                padding: 1rem;
+            }
+
+            .page-title {
+                font-size: 1.3rem;
+            }
+
+            .page-description {
+                font-size: 0.88rem;
+            }
+
+            .input-group label {
+                font-size: 0.95rem;
+            }
+
+            .form-input, .form-select {
+                font-size: 0.9rem;
+                padding: 0.75rem;
+            }
+
+            .create-btn {
+                padding: 0.9rem;
+                font-size: 0.95rem;
+            }
+        }
     </style>
 </head>
 <body>
