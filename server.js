@@ -102,17 +102,17 @@ async function initializeServices() {
   try {
     const mongoURI = process.env.MONGO_URI;
     await mongoose.connect(mongoURI);
-    console.log('MongoDB connected');
+    console.log("MongoDB connected");
   } catch (error) {
-    console.warn('MongoDB connection failed:', error.message);
+    console.warn("MongoDB connection failed:", error.message);
   }
 
   // Start cron service for domain management
   try {
     cronService.start();
-    console.log('Cron service started for domain management');
+    console.log("Cron service started for domain management");
   } catch (error) {
-    console.warn('Cron service failed to start:', error.message);
+    console.warn("Cron service failed to start:", error.message);
   }
 }
 
@@ -699,38 +699,40 @@ app.use(async (req, res, next) => {
   try {
     const host = req.headers.host;
     if (!host) return next();
-    
+
     // Remove www prefix and port for domain lookup
-    const cleanHost = host.replace(/^www\./, '').split(':')[0];
-    
+    const cleanHost = host.replace(/^www\./, "").split(":")[0];
+
     // Skip if this is localhost or IP address
-    if (cleanHost === 'localhost' || /^\d+\.\d+\.\d+\.\d+$/.test(cleanHost)) {
+    if (cleanHost === "localhost" || /^\d+\.\d+\.\d+\.\d+$/.test(cleanHost)) {
       return next();
     }
-    
+
     // Look up domain mapping
-    const domainMapping = await Domain.findOne({ 
-      domain: cleanHost, 
-      connected: true 
+    const domainMapping = await Domain.findOne({
+      domain: cleanHost,
+      connected: true,
     });
-    
+
     if (domainMapping) {
-      console.log(`🌐 Host-based routing: ${cleanHost} -> /site/${domainMapping.siteSlug}`);
-      
+      console.log(
+        `🌐 Host-based routing: ${cleanHost} -> /site/${domainMapping.siteSlug}`
+      );
+
       // Rewrite URL to point to the specific site
       const originalUrl = req.url;
       req.url = `/site/${domainMapping.siteSlug}${originalUrl}`;
-      
+
       // Set headers for proper site serving
-      req.headers['x-original-host'] = host;
-      req.headers['x-site-slug'] = domainMapping.siteSlug;
-      
+      req.headers["x-original-host"] = host;
+      req.headers["x-site-slug"] = domainMapping.siteSlug;
+
       console.log(`🔄 Rewritten URL: ${originalUrl} -> ${req.url}`);
     }
-    
+
     next();
   } catch (error) {
-    console.error('❌ Host-based routing error:', error.message);
+    console.error("❌ Host-based routing error:", error.message);
     next();
   }
 });
@@ -747,16 +749,16 @@ app.use("/api", domainRoutes);
 app.use("/site/:siteSlug", async (req, res, next) => {
   const { siteSlug } = req.params;
   const sitePath = path.join(__dirname, "cloned_sites", siteSlug);
-  
+
   try {
     // Check if site exists
     await fs.access(sitePath);
-    
+
     // Serve index.html for root requests or static files for asset requests
-    if (req.url === '/' || req.url === '') {
+    if (req.url === "/" || req.url === "") {
       const htmlPath = path.join(sitePath, "index.html");
       let html = await fs.readFile(htmlPath, "utf8");
-      
+
       // Fix asset paths to work with the /site/slug prefix
       html = html.replace(
         /src="\.\/assets\//g,
@@ -778,7 +780,7 @@ app.use("/site/:siteSlug", async (req, res, next) => {
         "<head>",
         `<head><base href="/cloned-sites/${siteSlug}/">`
       );
-      
+
       res.send(html);
     } else {
       // Serve static files
@@ -1153,7 +1155,7 @@ async function getLandingPageContent(siteId) {
     // Extract text content from the page
     const content = {
       title: $("title").text() || $("h1").first().text(),
-      headings: $("h1, h2, h3")
+      headings: $("h1, h2, h3, h4, h5, h6")
         .map((i, el) => $(el).text())
         .get(),
       paragraphs: $("p")
@@ -1161,6 +1163,31 @@ async function getLandingPageContent(siteId) {
         .get(),
       buttons: $('button, .btn, a[class*="btn"]')
         .map((i, el) => $(el).text())
+        .get(),
+      lists: $("ul, ol")
+        .map((i, el) => $(el).text())
+        .get(),
+      tables: $("td, th")
+        .map((i, el) => $(el).text())
+        .get(),
+      divs: $("div")
+        .map((i, el) => {
+          return $(el).clone().children().remove().end().text().trim();
+        })
+        .filter((text) => text.length > 0)
+        .get(),
+      spans: $("span")
+        .map((i, el) => $(el).text().trim())
+        .filter((text) => text.length > 0)
+        .get(),
+      altText: $("img[alt]")
+        .map((i, el) => $(el).attr("alt"))
+        .filter(
+          (text) => text && typeof text === "string" && text.trim().length > 0
+        )
+        .get(),
+      meta: $("meta[name='description']")
+        .map((i, el) => $(el).attr("content"))
         .get(),
     };
 
@@ -1170,6 +1197,12 @@ async function getLandingPageContent(siteId) {
       ...content.headings,
       ...content.paragraphs,
       ...content.buttons,
+      ...content.lists,
+      ...content.tables,
+      ...content.divs,
+      ...content.spans,
+      ...content.altText,
+      ...content.meta,
     ]
       .filter((text) => text && text.trim().length > 0)
       .join(" ");

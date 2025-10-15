@@ -250,8 +250,16 @@ async function generateImageAdsWithOpenRouter(inputs) {
         const textPrompt = `Create a marketing advertisement text for:
 
 PRODUCT INFO: ${researchText.substring(0, 500)}
-LANDING PAGE: ${landingPageContent.substring(0, 300)}
+LANDING PAGE CONTENT: ${landingPageContent.substring(0, 500)}
 STYLE: ${imageAnalysis}
+
+IMPORTANT INSTRUCTIONS:
+1. First, carefully analyze the LANDING PAGE CONTENT to understand what type of product is being sold.
+2. Create an advertisement that is CONTEXTUALLY APPROPRIATE for the actual product category.
+3. Use appropriate language and tone for the product's target audience.
+4. If the product is for adults only, ensure the ad reflects that appropriately.
+5. If the product is for children, ensure the ad is child-friendly.
+6. NEVER create children's toy ads for adult products or vice versa.
 
 Generate:
 - Catchy headline (max 8 words)
@@ -281,10 +289,17 @@ Format as JSON: {"headline": "...", "description": "...", "cta": "..."}`;
         }
 
         // Step 2: Generate image with Gemini native image generation
-        const imagePrompt = `Create a professional marketing advertisement poster:
+        const imagePrompt = `Create a professional marketing advertisement poster that is CONTEXTUALLY APPROPRIATE for the product:
+
+PRODUCT CONTEXT: ${landingPageContent.substring(0, 300)}
+RESEARCH: ${researchText.substring(0, 200)}
+
 Headline: "${adText.headline}"
 Description: "${adText.description}"
 CTA: "${adText.cta}"
+
+IMPORTANT: Ensure the advertisement is CONTEXTUALLY APPROPRIATE for the actual product being advertised. If the product is for adults, create an adult-appropriate ad. If it's for children, create a child-appropriate ad. Match the visual style to the product category.
+
 Style: Clean, modern, minimalist design with neutral background (white/cream), professional product photography in center, call-to-action button, high-end commercial quality, Instagram-ready format.`;
 
         const imageResponse = await geminiAI.models.generateContent({
